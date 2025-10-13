@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Professional Code Editor - Interactive Tutorials</title>
+
+  <!-- Prism.js for syntax highlighting -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" id="prism-theme-dark" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" id="prism-theme-light" disabled />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-primary: #000920;
+      --bg-secondary: #1a1a2e;
+      --bg-tertiary: #0d1117;
+      --border-color: #333;
+      --text-primary: #fff;
+      --text-secondary: #999;
+      --accent-color: #4CAF50;
+      --accent-hover: #0f3460;
+      --button-bg: #16213e;
+      --toggle-on: #16a34a;
+      --toggle-off: #dc2626;
+      --shadow: rgba(0,0,0,0.3);
+    }
+
+    body.light-mode {
+      --bg-primary: #f5f5f5;
+      --bg-secondary: #ffffff;
+      --bg-tertiary: #fafafa;
+      --border-color: #e0e0e0;
+      --text-primary: #000;
+      --text-secondary: #666;
+      --accent-color: #2196F3;
+      --accent-hover: #1976D2;
+      --button-bg: #e3f2fd;
+      --shadow: rgba(0,0,0,0.1);
+    }
+
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-primary);
+      font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Roboto", "Helvetica Neue", Arial, sans-serif;
+      color: var(--text-primary);
+      overflow: hidden;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+
+    #header {
+      background: var(--bg-secondary);
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+
+    .header-title {
+      font-size: 1.4em;
+      font-weight: 600;
+      color: var(--accent-color);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-title::before {
+      content: '</>';
+      font-size: 1.2em;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+
+    #controls {
+      background: var(--bg-secondary);
+      padding: 10px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+
+    .controls-group {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .speed-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--button-bg);
+      padding: 5px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+    }
+
+    .toggle-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    button, .icon-btn {
+      background: var(--button-bg);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 8px 14px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-family: inherit;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    button:hover, .icon-btn:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+
+    button:active, .icon-btn:active {
+      transform: translateY(0);
+    }
+
+    button.active {
+      background: var(--accent-color);
+      border-color: var(--accent-color);
+      font-weight: 600;
+    }
+
+    button.toggle-btn {
+      background: var(--toggle-off);
+      border-color: var(--toggle-off);
+    }
+
+    button.toggle-btn.active {
+      background: var(--toggle-on);
+      border-color: var(--toggle-on);
+    }
+
+    .icon-btn {
+      padding: 8px 10px;
+      font-size: 18px;
+      min-width: 40px;
+      justify-content: center;
+    }
+
+    .speed-btn {
+      padding: 6px 12px;
+      font-size: 16px;
+      font-weight: bold;
+      min-width: 35px;
+    }
+
+    .speed-display {
+      font-size: 13px;
+      color: var(--text-primary);
+      min-width: 75px;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 25px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 10px 40px var(--shadow);
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateY(-20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .modal-title {
+      font-size: 1.5em;
+      font-weight: 600;
+      color: var(--accent-color);
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 0;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      color: var(--text-primary);
+    }
+
+    .close-btn:hover {
+      background: var(--accent-hover);
+    }
+
+    .setting-item {
+      margin-bottom: 20px;
+      padding: 15px;
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+    }
+
+    .setting-label {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      display: block;
+      color: var(--text-primary);
+    }
+
+    .setting-description {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+    }
+
+    .setting-control {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 26px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: 0.3s;
+      border-radius: 26px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 20px;
+      width: 20px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: var(--accent-color);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(24px);
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: var(--border-color);
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--accent-color);
+      cursor: pointer;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--accent-color);
+      cursor: pointer;
+      border: none;
+    }
+
+    .range-value {
+      font-weight: 600;
+      color: var(--accent-color);
+      min-width: 40px;
+      text-align: right;
+    }
+
+    #main-container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .split-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+      min-height: 0;
+      background: var(--bg-tertiary);
+    }
+
+    .panel-header {
+      background: var(--bg-secondary);
+      padding: 8px 15px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .panel-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent-color);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .panel-controls {
+      display: flex;
+      gap: 6px;
+    }
+
+    .panel-controls button {
+      padding: 4px 10px;
+      font-size: 12px;
+    }
+
+    .resizer {
+      width: 5px;
+      background: var(--border-color);
+      cursor: col-resize;
+      position: relative;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+
+    .resizer:hover {
+      background: var(--accent-color);
+    }
+
+    .resizer::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 2px;
+      height: 40px;
+      background: var(--text-secondary);
+    }
+
+    .panel-content {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      background: var(--bg-tertiary);
+      min-height: 0;
+      position: relative;
+    }
+
+   textarea.code-editor {
+  width: 100%;
+  height: 100%;
+  border: none;
+  resize: none;
+  outline: none;
+  font-family: "Fira Code", "Consolas", "Monaco", monospace;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  padding: 20px;
+  font-size: 14px;
+  line-height: 1.6;
+  tab-size: 2;
+  
+  /* Disable spell check and autocorrect */
+  -webkit-user-modify: read-write-plaintext-only;
+}
+
+/* Remove all text decorations (underlines) */
+textarea.code-editor,
+textarea.code-editor:focus,
+textarea.code-editor:active,
+textarea.code-editor::selection,
+textarea.code-editor::-moz-selection {
+  text-decoration: none !important;
+  -webkit-text-decoration: none !important;
+  text-decoration-line: none !important;
+  text-decoration-color: transparent !important;
+  text-decoration-style: none !important;
+}
+
+/* Remove browser default decorations */
+textarea.code-editor::-webkit-input-placeholder {
+  text-decoration: none !important;
+}
+
+textarea.code-editor::-moz-placeholder {
+  text-decoration: none !important;
+}
+
+textarea.code-editor:-ms-input-placeholder {
+  text-decoration: none !important;
+}
+
+    .editor-wrapper {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    .line-numbers {
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      padding: 20px 10px;
+      text-align: right;
+      font-family: "Fira Code", "Consolas", "Monaco", monospace;
+      font-size: 14px;
+      line-height: 1.6;
+      user-select: none;
+      border-right: 1px solid var(--border-color);
+      min-width: 40px;
+      white-space: pre;
+      overflow: hidden;
+    }
+
+    .editor-wrapper.no-line-numbers .line-numbers {
+      display: none;
+    }
+
+    .editor-wrapper.no-line-numbers textarea.code-editor {
+      width: 100%;
+    }
+
+    .editor-wrapper textarea.code-editor {
+      flex: 1;
+    }
+
+    .content-display {
+      padding: 20px;
+      width: 100%;
+      height: 100%;
+      overflow-y: auto;
+    }
+
+    /* Simple fixed smaller output font */
+.content-display,
+.content-display pre code,
+.rendered-html-content {
+  font-size: 14px !important;
+}
+
+.code-block pre code {
+  font-size: 14px !important;
+}
+
+.script-label, 
+.style-label {
+  font-size: 14px !important;
+}
+
+textarea.code-editor {
+  font-size: 14px !important;
+  line-height: 1.6;
+}
+
+.highlight-overlay {
+  font-size: 14px !important;
+  line-height: 1.6;
+}
+
+.line-numbers {
+  font-size: 14px !important;
+  line-height: 1.6;
+}
+
+    .panel-content.rendered-mode {
+      background: #ffffff;
+    }
+
+    body.light-mode .panel-content.rendered-mode {
+      background: #fafafa;
+    }
+
+    .panel-content.rendered-mode .content-display {
+      color: #333;
+    }
+
+    pre {
+      background: var(--bg-tertiary) !important;
+      border-radius: 8px;
+      padding: 16px;
+      color: var(--text-primary) !important;
+      overflow-x: auto;
+      margin: 10px 0;
+      border: 1px solid var(--border-color);
+    }
+
+    code {
+      font-family: "Fira Code", "Consolas", "Monaco", monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .blinking-caret {
+      border-right: 2px solid var(--accent-color);
+      animation: blink 0.8s infinite;
+      display: inline-block;
+    }
+
+    @keyframes blink {
+      0%, 100% { border-color: transparent; }
+      50% { border-color: var(--accent-color); }
+    }
+
+    .script-label, .style-label {
+      padding: 6px 12px;
+      border-radius: 6px 6px 0 0;
+      font-size: 12px;
+      margin-top: 15px;
+      display: inline-block;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .script-label {
+      background: #fbbf24;
+      color: #000;
+    }
+
+    .style-label {
+      background: #3b82f6;
+      color: #fff;
+    }
+
+    .rendered-html-content {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px var(--shadow);
+      margin-bottom: 20px;
+    }
+
+    body.light-mode .rendered-html-content {
+      background: #ffffff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .code-block {
+      transition: all 0.3s ease;
+    }
+
+    .code-block.hidden {
+      display: none;
+    }
+
+    .status-indicator {
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      background: var(--button-bg);
+      color: var(--text-primary);
+      cursor: pointer;
+      user-select: none;
+      border: 1px solid var(--border-color);
+      transition: all 0.3s ease;
+    }
+
+    .status-indicator:hover {
+      transform: translateY(-1px);
+    }
+
+    .status-indicator.active {
+      background: var(--toggle-on);
+      border-color: var(--toggle-on);
+      color: white;
+    }
+
+    .status-indicator.inactive {
+      background: var(--toggle-off);
+      border-color: var(--toggle-off);
+      color: white;
+    }
+
+    body.single-panel-mode .split-panel.right-panel,
+    body.single-panel-mode .resizer {
+      display: none;
+    }
+
+    body.single-panel-mode .split-panel.left-panel {
+      width: 100%;
+    }
+
+    .hidden-element {
+      display: none !important;
+    }
+
+    .shortcut-hint {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      padding: 12px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      box-shadow: 0 4px 12px var(--shadow);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.3s ease;
+      pointer-events: none;
+      z-index: 100;
+      border: 1px solid var(--border-color);
+    }
+
+    .shortcut-hint.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .shortcut-hint kbd {
+      background: var(--bg-tertiary);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-family: monospace;
+      border: 1px solid var(--border-color);
+      font-size: 12px;
+    }
+
+    @media (max-width: 768px) {
+      #controls {
+        padding: 8px 12px;
+      }
+
+      .controls-group {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .modal {
+        width: 95%;
+        padding: 20px;
+      }
+
+      button {
+        font-size: 12px;
+        padding: 6px 10px;
+      }
+
+      .header-title {
+        font-size: 1.1em;
+      }
+    }
+
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-tertiary);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 5px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-secondary);
+    }
+
+/* Green comments for all modes */
+
+/* Edit mode - syntax highlighted overlay */
+.highlight-overlay code .token.comment,
+.highlight-overlay code .token.prolog,
+.highlight-overlay code .token.doctype,
+.highlight-overlay code .token.cdata {
+  color: #6a9955 !important; /* VS Code green */
+  font-style: italic;
+}
+
+/* Raw mode - code display */
+.content-display pre code .token.comment,
+.content-display pre code .token.prolog,
+.content-display pre code .token.doctype,
+.content-display pre code .token.cdata {
+  color: #6a9955 !important;
+  font-style: italic;
+}
+
+/* Render mode - code blocks */
+.code-block pre code .token.comment,
+.code-block pre code .token.prolog,
+.code-block pre code .token.doctype,
+.code-block pre code .token.cdata {
+  color: #6a9955 !important;
+  font-style: italic;
+}
+
+/* Light mode comments */
+body.light-mode .highlight-overlay code .token.comment,
+body.light-mode .content-display pre code .token.comment,
+body.light-mode .code-block pre code .token.comment {
+  color: #008000 !important; /* Brighter green for light mode */
+  font-style: italic;
+}
+
+
+
+  </style>
+</head>
+<body class="single-panel-mode">
+
+  <div id="controls">
+    <div class="controls-group">
+      <div class="speed-controls">
+        <button class="speed-btn" id="decreaseSpeed" title="Decrease Speed">-</button>
+        <div class="speed-display" id="speedDisplay">Speed: 20ms</div>
+        <button class="speed-btn" id="increaseSpeed" title="Increase Speed">+</button>
+      </div>
+      <button id="themeToggleBtn" class="icon-btn" title="Toggle Dark/Light Mode">🌓</button>
+      <button id="settingsBtn" class="icon-btn" title="Settings">⚙️</button>
+      <button id="fullscreenBtn" class="icon-btn" title="Toggle Fullscreen">⛶</button>
+    </div>
+  
+
+    
+
+    <div class="controls-group">
+      <div class="toggle-controls">
+        <button id="pauseBtn" class="hidden-element" title="Pause/Resume"><span class="pause-icon">⏸</span> Pause</button>
+        <button id="resetBtn" class="hidden-element" title="Reset">↻ Reset</button>
+        <span class="status-indicator hidden-element" id="cssStatusIndicator">CSS: ON</span>
+        <span class="status-indicator hidden-element" id="jsStatusIndicator">JS: ON</span>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">⚙️ Settings</div>
+        <button class="close-btn" id="closeSettingsBtn">×</button>
+      </div>
+
+      <div class="setting-item">
+        <label class="setting-label">Line Numbers</label>
+        <div class="setting-description">Show or hide line numbers in the editor</div>
+        <div class="setting-control">
+          <label class="toggle-switch">
+            <input type="checkbox" id="lineNumbersToggle" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <label class="setting-label">Split View</label>
+        <div class="setting-description">Enable side-by-side comparison of two code snippets</div>
+        <div class="setting-control">
+          <button id="splitViewBtnModal" class="toggle-btn">Enable Split View</button>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <label class="setting-label">Auto-Run on Mode Switch</label>
+        <div class="setting-description">Automatically start typewriter effect when switching modes</div>
+        <div class="setting-control">
+          <label class="toggle-switch">
+            <input type="checkbox" id="autoRunToggle" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <label class="setting-label">Font Size</label>
+        <div class="setting-description">Adjust the editor font size</div>
+        <div class="setting-control">
+          <input type="range" id="fontSizeSlider" min="10" max="24" value="14" step="1">
+          <span class="range-value" id="fontSizeValue">14px</span>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <label class="setting-label">Theme</label>
+        <div class="setting-description">Choose your preferred color theme</div>
+        <div class="setting-control">
+          <button id="themeToggleBtnModal" class="toggle-btn">🌓 Toggle Theme</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="main-container">
+    <div class="split-panel left-panel">
+      <div class="panel-header">
+        <div class="panel-title">Left Panel</div>
+        <div class="panel-controls">
+  <button class="panel-btn active" data-panel="left" data-mode="edit" title="Edit Mode">✏️ Edit</button>
+  <button class="panel-btn" data-panel="left" data-mode="raw" title="Raw Code">📝 Raw</button>
+  <button class="panel-btn" data-panel="left" data-mode="render" title="Rendered">🎨 Render</button>
+  <button class="panel-pause-btn hidden-element" data-panel="left" title="Pause/Resume"><span class="pause-icon">⏸</span></button>
+  <button class="panel-reset-btn hidden-element" data-panel="left" title="Reset">↻</button>
+  <span class="panel-html-toggle status-indicator hidden-element" data-panel="left">HTML</span>
+  <span class="panel-js-toggle status-indicator hidden-element" data-panel="left">JS</span>
+  <span class="panel-css-toggle status-indicator hidden-element" data-panel="left">CSS</span>
+</div>
+      </div>
+      <div class="panel-content left-content">
+        <div class="editor-wrapper">
+          <div class="line-numbers" id="lineNumbersLeft"></div>
+          <textarea class="code-editor" id="editor" placeholder="Write HTML, CSS, or JavaScript code here..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="resizer" id="resizer"></div>
+
+    <div class="split-panel right-panel">
+      <div class="panel-header">
+        <div class="panel-title">Right Panel</div>
+       <div class="panel-controls">
+  <button class="panel-btn active" data-panel="right" data-mode="edit" title="Edit Mode">✏️ Edit</button>
+  <button class="panel-btn" data-panel="right" data-mode="raw" title="Raw Code">📝 Raw</button>
+  <button class="panel-btn" data-panel="right" data-mode="render" title="Rendered">🎨 Render</button>
+  <button class="panel-pause-btn hidden-element" data-panel="right" title="Pause/Resume"><span class="pause-icon">⏸</span></button>
+  <button class="panel-reset-btn hidden-element" data-panel="right" title="Reset">↻</button>
+  <span class="panel-html-toggle status-indicator hidden-element" data-panel="right">HTML</span>
+  <span class="panel-js-toggle status-indicator hidden-element" data-panel="right">JS</span>
+  <span class="panel-css-toggle status-indicator hidden-element" data-panel="right">CSS</span>
+</div>
+      </div>
+      <div class="panel-content right-content">
+        <div class="editor-wrapper">
+          <div class="line-numbers" id="lineNumbersRight"></div>
+          <textarea class="code-editor" id="editorRight" placeholder="Write HTML, CSS, or JavaScript code here..."></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shortcut-hint" id="shortcutHint">
+    Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to run code
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
