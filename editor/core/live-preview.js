@@ -11,7 +11,7 @@ const CONSOLE_BRIDGE = `<script>
 (function(){
   var _p = window.parent;
   var _side = '__SIDE__';
-  function _send(level, args) {
+  function _send(level, args, loc) {
     var serialized = Array.prototype.map.call(args, function(a) {
       if (a === null) return null;
       if (a === undefined) return undefined;
@@ -19,7 +19,7 @@ const CONSOLE_BRIDGE = `<script>
       if (t === 'string' || t === 'number' || t === 'boolean') return a;
       try { return JSON.parse(JSON.stringify(a)); } catch(e) { return String(a); }
     });
-    try { _p.postMessage({ __source: 'ce-preview', side: _side, level: level, args: serialized }, '*'); } catch(e){}
+    try { _p.postMessage({ __source: 'ce-preview', side: _side, level: level, args: serialized, loc: loc || null }, '*'); } catch(e){}
   }
   /* Expose globally so user script catch blocks can call it */
   window.__ceLog = _send;
@@ -29,12 +29,24 @@ const CONSOLE_BRIDGE = `<script>
   });
   var origClear = console.clear.bind(console);
   console.clear = function() { origClear(); try { _p.postMessage({ __source: 'ce-preview', side: _side, level: 'clear', args: [] }, '*'); } catch(e){} };
+  var _jsOffset = __JS_LINE_OFFSET__;
   window.addEventListener('error', function(e) {
-    _send('error', [e.message + (e.filename ? ' (' + e.filename + ':' + e.lineno + ')' : '')]);
+    var userLine = e.lineno ? Math.max(1, e.lineno - _jsOffset) : null;
+    var loc = userLine ? 'line ' + userLine + (e.colno ? ', col ' + e.colno : '') : null;
+    _send('error', [e.message], loc);
     return true; /* prevent default red error in page */
+  });
+  window.addEventListener('unhandledrejection', function(e) {
+    _send('error', ['Unhandled Promise rejection: ' + (e.reason && e.reason.message ? e.reason.message : String(e.reason))]);
   });
 })();
 \x3C/script>`;
+
+function _countLines(str) {
+  let n = 0;
+  for (let i = 0; i < str.length; i++) if (str[i] === '\n') n++;
+  return n;
+}
 
 function buildLiveDoc(side) {
   const tabs = tabsFor(side);
@@ -46,20 +58,49 @@ function buildLiveDoc(side) {
   // If the HTML tab already contains a full document, inject CSS/JS into it
   if (/<!DOCTYPE|<html/i.test(html)) {
     let doc = html;
-    doc = doc.replace('<head>', `<head>\n${bridge}`);
     if (css) doc = doc.replace('</head>', `<style>\n${css}\n</style>\n</head>`);
-    if (js)  doc = doc.replace('</body>',
+    // Calculate JS offset before inserting bridge (bridge goes into <head>)
+    const headEnd   = doc.indexOf('<head>') + '<head>'.length + 1; // +1 for \n
+    const beforeJs  = doc.slice(0, doc.indexOf('</body>'));
+    const jsOffset  = _countLines(bridge) + _countLines(beforeJs.slice(headEnd)) + 3;
+    const finalBr   = bridge.replace('__JS_LINE_OFFSET__', jsOffset);
+    doc = doc.replace('<head>', `<head>\n${finalBr}`);
+    if (js) doc = doc.replace('</body>',
       `<script>\ntry{\n${js}\n}catch(e){window.__ceLog('error',[e.toString()]);}\n\x3C/script>\n</body>`);
     return doc;
   }
 
-  // Otherwise compose a fresh document
+  // Build the prefix to count its lines and know where JS lands
+  const prefix = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  BRIDGE_PLACEHOLDER
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 16px; font-size: 14px; }
+    ${css}
+  </style>
+</head>
+<body>
+  ${html}
+  <script>
+try {
+`;
+  // JS starts at: lines in prefix (with bridge substituted) + 1
+  const bridgePlaceholderLines = _countLines('  BRIDGE_PLACEHOLDER');
+  const bridgeLines = _countLines(bridge);
+  const prefixLines = _countLines(prefix) - bridgePlaceholderLines + bridgeLines;
+  const jsOffset    = prefixLines; // line number in doc where user JS line 1 sits
+
+  const finalBridge = bridge.replace('__JS_LINE_OFFSET__', jsOffset);
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  ${bridge}
+  ${finalBridge}
   <style>
     body { font-family: system-ui, sans-serif; padding: 16px; font-size: 14px; }
     ${css}

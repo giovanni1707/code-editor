@@ -102,7 +102,7 @@ function setPanelMode(side, mode) {
 
   // Playback controls
   const playWrap = side === 'left' ? el.playWrapL : el.playWrapR;
-  playWrap.style.visibility = isTw ? 'visible' : 'hidden';
+  playWrap.style.display = isTw ? 'flex' : 'none';
 
   // Reset pause button
   const pauseBtn = side === 'left' ? el.pauseBtnL : el.pauseBtnR;
@@ -133,7 +133,7 @@ function wirePlayback(side) {
 
 function setPlaybackVisible(side, visible) {
   const wrap = side === 'left' ? el.playWrapL : el.playWrapR;
-  wrap.style.visibility = visible ? 'visible' : 'hidden';
+  wrap.style.display = visible ? 'flex' : 'none';
 }
 
 /* ════════════════════════════════════════════════════════════════

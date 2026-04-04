@@ -116,6 +116,7 @@ function init() {
 
   // 5. Wire all events
   wireAllTextareas();
+  wireAllAutoClose();
   wireTabButtons('left');
   wireTabButtons('right');
   wirePanelActions('left');
@@ -125,6 +126,10 @@ function init() {
   wireLivePreview();
   wireConsole();
   wireFormatter();
+  wireFind();
+  wireExport();
+  wireExportMenus();
+  wireColorScheme();
   wireToolbar();
   wireSettings();
   wireKeyboard();

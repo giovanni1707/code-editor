@@ -235,7 +235,7 @@
     .editor-col {
       display: flex;
       flex-direction: column;
-      overflow: hidden;
+      overflow: visible;
       min-width: 120px;
       flex: 1;
       position: relative;
@@ -248,11 +248,13 @@
       background: var(--bg1);
       border-bottom: 1px solid var(--border);
       display: flex;
-      align-items: stretch;
+      align-items: center;
       padding: 0 4px;
       gap: 2px;
       flex-shrink: 0;
-      overflow: hidden;
+      overflow: visible;
+      position: relative;
+      z-index: 20;
     }
 
     .col-tab {
@@ -263,6 +265,7 @@
       border-bottom: 2px solid transparent;
       cursor: pointer;
       white-space: nowrap;
+      flex-shrink: 0;
       transition: color var(--speed), border-color var(--speed);
       user-select: none;
     }
@@ -301,6 +304,26 @@
     }
     .col-tab-btn:hover { background: var(--bg3); color: var(--txt0); }
     .col-tab-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+    .col-tab-sep { width: 1px; height: 16px; background: var(--border); margin: 0 2px; flex-shrink: 0; }
+
+    /* Export wrap inside tab bar */
+    .col-tabs-end .export-wrap { position: relative; }
+
+    /* Console toggle in tab bar */
+    .col-tabs-end .console-toggle {
+      width: auto;
+      padding: 0 6px;
+      gap: 3px;
+      font-size: 11px;
+    }
+    .col-tabs-end .console-toggle .cn-badge {
+      font-size: 9px;
+      background: var(--red);
+      color: #fff;
+      border-radius: 8px;
+      padding: 0 4px;
+      line-height: 14px;
+    }
 
     /* Progress bar under tab row */
     .col-progress {
@@ -354,18 +377,16 @@
       caret-color: var(--caret);
       z-index: 2;
       overflow: auto;
-      /* Scrollbar must not consume layout width — keep in sync with pre */
       scrollbar-width: thin;
-      scrollbar-color: transparent transparent;
-    }
-    textarea.code-ta:hover,
-    textarea.code-ta:focus {
       scrollbar-color: var(--border) transparent;
     }
-    textarea.code-ta::-webkit-scrollbar {
-      width: 0;
-      height: 0;
+    textarea.code-ta::-webkit-scrollbar { width: 8px; height: 8px; }
+    textarea.code-ta::-webkit-scrollbar-track { background: transparent; }
+    textarea.code-ta::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
     }
+    textarea.code-ta::-webkit-scrollbar-thumb:hover { background: var(--txt2); }
     textarea.code-ta::selection      { background: rgba(88,166,255,0.35); color: transparent; }
     textarea.code-ta::-moz-selection { background: rgba(88,166,255,0.35); color: transparent; }
     :root.light textarea.code-ta::selection      { background: rgba(9,105,218,0.25); color: transparent; }
@@ -410,113 +431,7 @@
       /* Do NOT override color or text-shadow — let Prism theme set those */
     }
 
-    /* ── Dark mode: VSCode Dark+ palette ── */
-    pre.hl-layer                                         { color: #d4d4d4; }
-    pre.hl-layer .token.keyword                          { color: #569cd6 !important; }
-    pre.hl-layer .token.string,
-    pre.hl-layer .token.attr-value                       { color: #ce9178 !important; }
-    pre.hl-layer .token.template-string .token.string,
-    pre.hl-layer .token.template-string                  { color: #ce9178 !important; }
-    pre.hl-layer .token.template-punctuation             { color: #ce9178 !important; }
-    pre.hl-layer .token.interpolation-punctuation,
-    pre.hl-layer .token.interpolation                    { color: #569cd6 !important; }
-    pre.hl-layer .token.number                           { color: #b5cea8 !important; }
-    pre.hl-layer .token.boolean,
-    pre.hl-layer .token.constant                         { color: #569cd6 !important; }
-    pre.hl-layer .token.function                         { color: #dcdcaa !important; }
-    pre.hl-layer .token.method                           { color: #dcdcaa !important; }
-    pre.hl-layer .token.class-name                       { color: #4ec9b0 !important; }
-    pre.hl-layer .token.comment,
-    pre.hl-layer .token.prolog,
-    pre.hl-layer .token.cdata                            { color: #6a9955 !important; font-style: italic; }
-    pre.hl-layer .token.operator                         { color: #d4d4d4 !important; }
-    pre.hl-layer .token.punctuation                      { color: #d4d4d4 !important; }
-    pre.hl-layer .token.property                         { color: #9cdcfe !important; }
-    pre.hl-layer .token.tag                              { color: #569cd6 !important; }
-    pre.hl-layer .token.attr-name                        { color: #9cdcfe !important; }
-    pre.hl-layer .token.selector                         { color: #d7ba7d !important; }
-    pre.hl-layer .token.atrule,
-    pre.hl-layer .token.rule                             { color: #c586c0 !important; }
-    pre.hl-layer .token.unit                             { color: #b5cea8 !important; }
-    pre.hl-layer .token.regex,
-    pre.hl-layer .token.important                        { color: #d16969 !important; }
-    pre.hl-layer .token.variable                         { color: #9cdcfe !important; }
-    pre.hl-layer .token.parameter                        { color: #9cdcfe !important; }
-
-    /* ── Light mode: jsplayground / VSCode Light+ palette ── */
-    :root.light pre.hl-layer                             { color: #3b3b3b; }
-    :root.light pre.hl-layer .token.keyword              { color: #0070c1 !important; }
-    :root.light pre.hl-layer .token.string,
-    :root.light pre.hl-layer .token.attr-value           { color: #a31515 !important; }
-    :root.light pre.hl-layer .token.template-string .token.string,
-    :root.light pre.hl-layer .token.template-string      { color: #a31515 !important; }
-    :root.light pre.hl-layer .token.template-punctuation { color: #a31515 !important; }
-    :root.light pre.hl-layer .token.interpolation-punctuation,
-    :root.light pre.hl-layer .token.interpolation        { color: #0070c1 !important; }
-    :root.light pre.hl-layer .token.number               { color: #098658 !important; }
-    :root.light pre.hl-layer .token.boolean,
-    :root.light pre.hl-layer .token.constant             { color: #0070c1 !important; }
-    :root.light pre.hl-layer .token.function             { color: #795e26 !important; }
-    :root.light pre.hl-layer .token.method               { color: #795e26 !important; }
-    :root.light pre.hl-layer .token.class-name           { color: #267f99 !important; }
-    :root.light pre.hl-layer .token.comment,
-    :root.light pre.hl-layer .token.prolog,
-    :root.light pre.hl-layer .token.cdata                { color: #008000 !important; font-style: italic; }
-    :root.light pre.hl-layer .token.operator             { color: #3b3b3b !important; }
-    :root.light pre.hl-layer .token.punctuation          { color: #3b3b3b !important; }
-    :root.light pre.hl-layer .token.property             { color: #001080 !important; }
-    :root.light pre.hl-layer .token.tag                  { color: #800000 !important; }
-    :root.light pre.hl-layer .token.attr-name            { color: #e50000 !important; }
-    :root.light pre.hl-layer .token.selector             { color: #800000 !important; }
-    :root.light pre.hl-layer .token.atrule,
-    :root.light pre.hl-layer .token.rule                 { color: #af00db !important; }
-    :root.light pre.hl-layer .token.unit                 { color: #098658 !important; }
-    :root.light pre.hl-layer .token.regex,
-    :root.light pre.hl-layer .token.important            { color: #811f3f !important; }
-    :root.light pre.hl-layer .token.variable             { color: #001080 !important; }
-    :root.light pre.hl-layer .token.parameter            { color: #001080 !important; }
-
-    /* ── Same palette for the typewriter output surface ── */
-    .output-surface pre { color: #d4d4d4; }
-    :root.light .output-surface pre { color: #1f2328; }
-    .output-surface .token.keyword              { color: #569cd6 !important; }
-    .output-surface .token.string,
-    .output-surface .token.attr-value           { color: #ce9178 !important; }
-    .output-surface .token.number               { color: #b5cea8 !important; }
-    .output-surface .token.boolean,
-    .output-surface .token.constant             { color: #569cd6 !important; }
-    .output-surface .token.function             { color: #dcdcaa !important; }
-    .output-surface .token.class-name           { color: #4ec9b0 !important; }
-    .output-surface .token.comment,
-    .output-surface .token.prolog               { color: #6a9955 !important; font-style: italic; }
-    .output-surface .token.operator,
-    .output-surface .token.punctuation          { color: #d4d4d4 !important; }
-    .output-surface .token.property             { color: #9cdcfe !important; }
-    .output-surface .token.tag                  { color: #569cd6 !important; }
-    .output-surface .token.attr-name            { color: #9cdcfe !important; }
-    .output-surface .token.selector             { color: #d7ba7d !important; }
-    .output-surface .token.atrule,
-    .output-surface .token.rule                 { color: #c586c0 !important; }
-    .output-surface .token.unit                 { color: #b5cea8 !important; }
-    .output-surface .token.variable             { color: #9cdcfe !important; }
-    :root.light .output-surface .token.keyword              { color: #0070c1 !important; }
-    :root.light .output-surface .token.string,
-    :root.light .output-surface .token.attr-value           { color: #a31515 !important; }
-    :root.light .output-surface .token.number               { color: #098658 !important; }
-    :root.light .output-surface .token.boolean,
-    :root.light .output-surface .token.constant             { color: #0070c1 !important; }
-    :root.light .output-surface .token.function,
-    :root.light .output-surface .token.method               { color: #795e26 !important; }
-    :root.light .output-surface .token.class-name           { color: #267f99 !important; }
-    :root.light .output-surface .token.comment              { color: #008000 !important; font-style: italic; }
-    :root.light .output-surface .token.operator             { color: #3b3b3b !important; }
-    :root.light .output-surface .token.punctuation          { color: #3b3b3b !important; }
-    :root.light .output-surface .token.property             { color: #001080 !important; }
-    :root.light .output-surface .token.tag                  { color: #800000 !important; }
-    :root.light .output-surface .token.attr-name            { color: #e50000 !important; }
-    :root.light .output-surface .token.selector             { color: #800000 !important; }
-    :root.light .output-surface .token.variable,
-    :root.light .output-surface .token.parameter            { color: #001080 !important; }
+    /* Token colors are injected dynamically by core/themes.js */
 
     /* No line numbers variant */
     .editor-col.no-gutter .line-gutter { display: none; }
@@ -819,20 +734,10 @@
 
     /* Token overrides are scoped to pre.hl-layer and .output-surface above */
 
-    /* ─── Per-panel mode bar (inside .editor-col) ───────────────── */
-    .panel-modebar {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      padding: 0 6px;
-      height: var(--tab-h);
-      min-height: var(--tab-h);
-      background: var(--bg2);
-      border-bottom: 1px solid var(--border);
-      flex-shrink: 0;
-    }
-    .panel-modebar .mode-btn {
-      padding: 3px 10px;
+    /* ─── Mode buttons (inside col-tabs-end) ───────────────────── */
+    .col-tabs-end .mode-btn {
+      height: 24px;
+      padding: 0 9px;
       border-radius: 3px;
       border: none;
       background: transparent;
@@ -842,72 +747,143 @@
       font-weight: 500;
       cursor: pointer;
       white-space: nowrap;
+      flex-shrink: 0;
       transition: background var(--speed), color var(--speed);
     }
-    .panel-modebar .mode-btn:hover { background: var(--bg3); color: var(--txt0); }
-    .panel-modebar .mode-btn.active { background: var(--blue); color: #fff; }
-    .panel-modebar .play-wrap {
-      display: flex; gap: 3px; margin-left: 4px;
-    }
-    .panel-modebar .play-btn {
-      padding: 3px 8px;
+    .col-tabs-end .mode-btn:hover { background: var(--bg3); color: var(--txt0); }
+    .col-tabs-end .mode-btn.active { background: var(--blue); color: #fff; }
+
+    /* Playback buttons inside col-tabs */
+    .col-tabs-end .play-wrap { display: flex; align-items: center; gap: 3px; }
+    .col-tabs-end .play-btn {
+      height: 24px;
+      padding: 0 8px;
       border: 1px solid var(--border);
       border-radius: var(--r);
       background: transparent;
       color: var(--txt1);
       font-family: var(--font-ui);
-      font-size: 11px; font-weight: 500;
-      cursor: pointer;
-      transition: all var(--speed);
-    }
-    .panel-modebar .play-btn:hover { background: var(--bg3); color: var(--txt0); }
-    .panel-modebar .play-btn.run   { background: var(--green); border-color: var(--green); color: #fff; }
-    .panel-modebar .play-btn.run:hover { opacity: .85; }
-    .panel-modebar .play-btn.paused { background: var(--yellow); border-color: var(--yellow); color: #000; }
-    .panel-modebar .sep { width:1px; height:18px; background:var(--border); margin: 0 2px; flex-shrink:0; }
-    .panel-modebar .mb-spacer { flex: 1; }
-    .panel-modebar .fmt-btn {
-      padding: 3px 8px;
-      border: 1px solid var(--border);
-      border-radius: var(--r);
-      background: transparent;
-      color: var(--txt1);
       font-size: 11px;
       cursor: pointer;
-      transition: all var(--speed);
-      white-space: nowrap;
-    }
-    .panel-modebar .fmt-btn:hover { background: var(--purple); border-color: var(--purple); color: #fff; }
-    .panel-modebar .play-run-btn {
-      display: flex; align-items: center; gap: 4px;
-      padding: 3px 10px;
-      border: none;
-      border-radius: var(--r);
-      background: var(--green);
-      color: #fff;
-      font-family: var(--font-ui);
-      font-size: 11px; font-weight: 600;
-      cursor: pointer;
-      transition: opacity var(--speed);
       white-space: nowrap;
       flex-shrink: 0;
+      transition: all var(--speed);
     }
-    .panel-modebar .play-run-btn:hover { opacity: .85; }
-    /* Hide when not in edit mode */
-    .editor-col:not(.mode-edit) .play-run-btn { display: none; }
-    .panel-modebar .console-toggle {
-      display: flex; align-items: center; gap: 3px;
+    .col-tabs-end .play-btn:hover { background: var(--bg3); color: var(--txt0); }
+    .col-tabs-end .play-btn.run   { background: var(--green); border-color: var(--green); color: #fff; }
+    .col-tabs-end .play-btn.run:hover { opacity: .85; }
+    .col-tabs-end .play-btn.paused { background: var(--yellow); border-color: var(--yellow); color: #000; }
+    .console-toggle.active { background: var(--bg0); border-color: var(--txt2); color: var(--txt0); }
+
+    /* ─── Find & Replace bar ────────────────────────────────────── */
+    .find-bar {
+      display: none;
+      flex-direction: column;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 5px 8px;
+      gap: 4px;
+      flex-shrink: 0;
+      z-index: 20;
+    }
+    .find-bar.open { display: flex; }
+    .find-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .find-input {
+      flex: 1;
+      background: var(--bg0);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      color: var(--txt0);
+      font-family: var(--font-mono);
+      font-size: 12px;
       padding: 3px 8px;
+      outline: none;
+      min-width: 0;
+    }
+    .find-input:focus { border-color: var(--blue); }
+    .find-input.find-no-match { border-color: var(--red); background: rgba(244,112,103,.08); }
+    .find-count {
+      font-size: 11px;
+      color: var(--txt1);
+      min-width: 60px;
+      white-space: nowrap;
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .find-btn {
+      padding: 3px 7px;
       border: 1px solid var(--border);
       border-radius: var(--r);
       background: transparent;
       color: var(--txt1);
       font-size: 11px;
       cursor: pointer;
+      white-space: nowrap;
       transition: all var(--speed);
+      flex-shrink: 0;
     }
-    .panel-modebar .console-toggle:hover { background: var(--bg3); color: var(--txt0); }
-    .panel-modebar .console-toggle.active { background: var(--bg0); border-color: var(--txt2); color: var(--txt0); }
+    .find-btn:hover { background: var(--bg3); color: var(--txt0); }
+    .find-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+    .find-btn.repl-btn { background: var(--green); border-color: var(--green); color: #fff; }
+    .find-btn.repl-btn:hover { opacity: .85; }
+    .find-btn.close-btn { font-size: 13px; padding: 2px 6px; }
+
+    /* Match highlight in hl-layer */
+    mark.find-match {
+      background: rgba(227,179,65,.35);
+      color: inherit;
+      border-radius: 2px;
+    }
+    mark.find-match-current {
+      background: rgba(227,179,65,.85);
+      color: #000;
+      border-radius: 2px;
+    }
+
+    /* ─── Export menu ────────────────────────────────────────────── */
+    .export-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
+    .export-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      right: 0;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      box-shadow: 0 8px 24px rgba(0,0,0,.35);
+      z-index: 100;
+      min-width: 160px;
+      overflow: hidden;
+    }
+    .export-wrap.open .export-menu { display: block; }
+    .export-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+      color: var(--txt0);
+      cursor: pointer;
+      transition: background var(--speed);
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+      font-family: var(--font-ui);
+    }
+    .export-menu-item:hover { background: var(--bg3); }
+    .export-menu-sep {
+      height: 1px;
+      background: var(--border);
+      margin: 2px 0;
+    }
 
     /* ─── Console drawer (per panel, inside .editor-col) ─────────── */
     .console-drawer {
@@ -1006,6 +982,20 @@
     .cn-row.cn-error { color: var(--red);    background: rgba(244,112,103,.08); }
     .cn-icon { flex-shrink: 0; width: 14px; font-size: 11px; padding-top: 1px; }
     .cn-body { flex: 1; white-space: pre-wrap; word-break: break-all; }
+    .cn-loc {
+      flex-shrink: 0;
+      font-size: 10px;
+      font-family: var(--font-mono);
+      opacity: 0.65;
+      background: rgba(244,112,103,.15);
+      color: var(--red);
+      border: 1px solid rgba(244,112,103,.3);
+      border-radius: 3px;
+      padding: 1px 5px;
+      margin-left: 6px;
+      align-self: center;
+      white-space: nowrap;
+    }
     .cn-str  { color: var(--green); }
     .cn-num  { color: var(--blue); }
     .cn-bool { color: var(--purple); }
@@ -1071,6 +1061,45 @@
     /* Split button active state */
     .cn-action.active { background: var(--blue); border-color: var(--blue); color: #fff; }
 
+    /* ─── Color scheme picker ───────────────────────────────────── */
+    .scheme-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .scheme-card {
+      border: 2px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      cursor: pointer;
+      transition: border-color var(--speed), transform var(--speed);
+      background: var(--bg0);
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .scheme-card:hover { border-color: var(--txt1); transform: translateY(-1px); }
+    .scheme-card.active { border-color: var(--blue); }
+    .scheme-name {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--txt0);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .scheme-preview {
+      display: flex;
+      gap: 3px;
+      flex-wrap: wrap;
+    }
+    .scheme-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
     /* ─── Utility ────────────────────────────────────────────────── */
     .hidden { display: none !important; }
   </style>
@@ -1116,25 +1145,43 @@
           <div class="col-tab"        id="LtabCss"  data-lang="css" ><span class="lang-dot" style="background:var(--blue)"></span>CSS</div>
           <div class="col-tab active" id="LtabJs"   data-lang="js"  ><span class="lang-dot" style="background:var(--yellow)"></span>JS</div>
           <div class="col-tabs-end">
-            <button class="col-tab-btn" id="lineNumBtnL" title="Toggle line numbers" style="font-family:var(--font-mono)">¶</button>
-            <button class="col-tab-btn" id="copyBtnL"    title="Copy">⎘</button>
-            <button class="col-tab-btn" id="clearBtnL"   title="Clear">✕</button>
+            <div class="col-tab-sep"></div>
+            <button class="mode-btn active" data-mode="edit" title="Edit mode">✏ Edit</button>
+            <button class="mode-btn"        data-mode="raw"  title="Typewriter">⌨ Raw</button>
+            <button class="mode-btn"        data-mode="live" title="Live preview">⚡ Live</button>
+            <div class="play-wrap" id="playWrapL" style="display:none">
+              <div class="col-tab-sep"></div>
+              <button class="play-btn run" id="runBtnL"   title="Run">▶ Run</button>
+              <button class="play-btn"     id="pauseBtnL" title="Pause (Space)">⏸ Pause</button>
+              <button class="play-btn"     id="resetBtnL" title="Restart (R)">↺</button>
+            </div>
+            <div class="col-tab-sep"></div>
+            <button class="col-tab-btn" id="fmtBtnL"  title="Format (Alt+Shift+F)">⎇</button>
+            <button class="col-tab-btn" id="clearBtnL" title="Clear">✕</button>
+            <button class="col-tab-btn console-toggle" id="consoleToggleBtnL" title="Toggle console">▼<span class="cn-badge" id="consoleBadgeL" style="display:none">0</span></button>
+            <!-- kept in DOM for JS compat, hidden -->
+            <span id="lineNumBtnL" style="display:none"></span>
+            <span id="copyBtnL"    style="display:none"></span>
+            <span id="exportToggleBtnL" style="display:none"></span>
+            <div  id="exportMenuL" style="display:none"></div>
           </div>
         </div>
-        <div class="panel-modebar">
-          <button class="mode-btn active" data-mode="edit" title="Edit mode">✏ Edit</button>
-          <button class="mode-btn"        data-mode="raw"  title="Typewriter">⌨ Raw</button>
-          <button class="mode-btn"        data-mode="live" title="Live preview">⚡ Live</button>
-          <div class="sep"></div>
-          <div class="play-wrap" id="playWrapL" style="visibility:hidden">
-            <button class="play-btn run" id="runBtnL"   title="Run">▶ Run</button>
-            <button class="play-btn"     id="pauseBtnL" title="Pause (Space)">⏸ Pause</button>
-            <button class="play-btn"     id="resetBtnL" title="Restart (R)">↺</button>
+        <!-- Find & Replace bar -->
+        <div class="find-bar" id="findBarL">
+          <div class="find-row">
+            <input class="find-input" id="findQueryL"   type="text" placeholder="Find…" autocomplete="off" spellcheck="false" />
+            <span  class="find-count" id="findCountL"></span>
+            <button class="find-btn" id="findCaseL"  title="Match case">Aa</button>
+            <button class="find-btn" id="findRegexL" title="Use regex">.*</button>
+            <button class="find-btn" id="findPrevL"  title="Previous (Shift+Enter)">↑</button>
+            <button class="find-btn" id="findNextL"  title="Next (Enter)">↓</button>
+            <button class="find-btn close-btn" id="findCloseL" title="Close (Esc)">✕</button>
           </div>
-          <div class="sep"></div>
-          <button class="fmt-btn" id="fmtBtnL" title="Format code (Alt+Shift+F)">⎇ Format</button>
-          <div class="mb-spacer"></div>
-          <button class="console-toggle" id="consoleToggleBtnL" title="Toggle console">▼ Console<span class="cn-badge" id="consoleBadgeL" style="display:none">0</span></button>
+          <div class="find-row" id="findReplRowL" style="display:none">
+            <input class="find-input" id="findReplaceL" type="text" placeholder="Replace…" autocomplete="off" spellcheck="false" />
+            <button class="find-btn repl-btn" id="findDoReplL">Replace</button>
+            <button class="find-btn repl-btn" id="findReplAllL">All</button>
+          </div>
         </div>
         <div class="col-progress"><div class="col-progress-fill" id="progressLeft"></div></div>
         <div class="editor-surface lang-surface" id="LsurfaceHtml" style="display:none">
@@ -1151,7 +1198,7 @@
             <pre class="hl-layer" id="LhlCss" aria-hidden="true"><code class="language-css"></code></pre>
           </div>
         </div>
-        <div class="editor-surface lang-surface" id="LsurfaceJs">
+        <div class="editor-surface lang-surface" id="LsurfaceJs" style="display:none">
           <div class="line-gutter" id="LgutterJs">1</div>
           <div class="editor-inner">
             <textarea class="code-ta" id="LtaJs" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="// JavaScript goes here"></textarea>
@@ -1232,25 +1279,43 @@
           <div class="col-tab"        id="RtabCss"  data-lang="css" ><span class="lang-dot" style="background:var(--blue)"></span>CSS</div>
           <div class="col-tab active" id="RtabJs"   data-lang="js"  ><span class="lang-dot" style="background:var(--yellow)"></span>JS</div>
           <div class="col-tabs-end">
-            <button class="col-tab-btn" id="lineNumBtnR" title="Toggle line numbers" style="font-family:var(--font-mono)">¶</button>
-            <button class="col-tab-btn" id="copyBtnR"    title="Copy">⎘</button>
-            <button class="col-tab-btn" id="clearBtnR"   title="Clear">✕</button>
+            <div class="col-tab-sep"></div>
+            <button class="mode-btn active" data-mode="edit" title="Edit mode">✏ Edit</button>
+            <button class="mode-btn"        data-mode="raw"  title="Typewriter">⌨ Raw</button>
+            <button class="mode-btn"        data-mode="live" title="Live preview">⚡ Live</button>
+            <div class="play-wrap" id="playWrapR" style="display:none">
+              <div class="col-tab-sep"></div>
+              <button class="play-btn run" id="runBtnR"   title="Run">▶ Run</button>
+              <button class="play-btn"     id="pauseBtnR" title="Pause (Space)">⏸ Pause</button>
+              <button class="play-btn"     id="resetBtnR" title="Restart (R)">↺</button>
+            </div>
+            <div class="col-tab-sep"></div>
+            <button class="col-tab-btn" id="fmtBtnR"  title="Format (Alt+Shift+F)">⎇</button>
+            <button class="col-tab-btn" id="clearBtnR" title="Clear">✕</button>
+            <button class="col-tab-btn console-toggle" id="consoleToggleBtnR" title="Toggle console">▼<span class="cn-badge" id="consoleBadgeR" style="display:none">0</span></button>
+            <!-- kept in DOM for JS compat, hidden -->
+            <span id="lineNumBtnR" style="display:none"></span>
+            <span id="copyBtnR"    style="display:none"></span>
+            <span id="exportToggleBtnR" style="display:none"></span>
+            <div  id="exportMenuR" style="display:none"></div>
           </div>
         </div>
-        <div class="panel-modebar">
-          <button class="mode-btn active" data-mode="edit" title="Edit mode">✏ Edit</button>
-          <button class="mode-btn"        data-mode="raw"  title="Typewriter">⌨ Raw</button>
-          <button class="mode-btn"        data-mode="live" title="Live preview">⚡ Live</button>
-          <div class="sep"></div>
-          <div class="play-wrap" id="playWrapR" style="visibility:hidden">
-            <button class="play-btn run" id="runBtnR"   title="Run">▶ Run</button>
-            <button class="play-btn"     id="pauseBtnR" title="Pause (Space)">⏸ Pause</button>
-            <button class="play-btn"     id="resetBtnR" title="Restart (R)">↺</button>
+        <!-- Find & Replace bar -->
+        <div class="find-bar" id="findBarR">
+          <div class="find-row">
+            <input class="find-input" id="findQueryR"   type="text" placeholder="Find…" autocomplete="off" spellcheck="false" />
+            <span  class="find-count" id="findCountR"></span>
+            <button class="find-btn" id="findCaseR"  title="Match case">Aa</button>
+            <button class="find-btn" id="findRegexR" title="Use regex">.*</button>
+            <button class="find-btn" id="findPrevR"  title="Previous (Shift+Enter)">↑</button>
+            <button class="find-btn" id="findNextR"  title="Next (Enter)">↓</button>
+            <button class="find-btn close-btn" id="findCloseR" title="Close (Esc)">✕</button>
           </div>
-          <div class="sep"></div>
-          <button class="fmt-btn" id="fmtBtnR" title="Format code (Alt+Shift+F)">⎇ Format</button>
-          <div class="mb-spacer"></div>
-          <button class="console-toggle" id="consoleToggleBtnR" title="Toggle console">▼ Console<span class="cn-badge" id="consoleBadgeR" style="display:none">0</span></button>
+          <div class="find-row" id="findReplRowR" style="display:none">
+            <input class="find-input" id="findReplaceR" type="text" placeholder="Replace…" autocomplete="off" spellcheck="false" />
+            <button class="find-btn repl-btn" id="findDoReplR">Replace</button>
+            <button class="find-btn repl-btn" id="findReplAllR">All</button>
+          </div>
         </div>
         <div class="col-progress"><div class="col-progress-fill" id="progressRight"></div></div>
         <div class="editor-surface lang-surface" id="RsurfaceHtml" style="display:none">
@@ -1267,7 +1332,7 @@
             <pre class="hl-layer" id="RhlCss" aria-hidden="true"><code class="language-css"></code></pre>
           </div>
         </div>
-        <div class="editor-surface lang-surface" id="RsurfaceJs">
+        <div class="editor-surface lang-surface" id="RsurfaceJs" style="display:none">
           <div class="line-gutter" id="RgutterJs">1</div>
           <div class="editor-inner">
             <textarea class="code-ta" id="RtaJs" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="// JavaScript goes here"></textarea>
@@ -1400,10 +1465,17 @@
     </div>
 
     <div class="stg-group">
+      <div class="stg-group-title">Syntax Highlight Theme</div>
+      <div class="scheme-grid" id="schemeGrid"></div>
+    </div>
+
+    <div class="stg-group">
       <div class="stg-group-title">Keyboard Shortcuts</div>
       <div class="stg-row">
         <div style="display:flex;flex-wrap:wrap;gap:6px;font-size:11px;color:var(--txt1);line-height:2">
           <span><kbd>Alt+Shift+F</kbd> Format code</span>
+          <span><kbd>Ctrl+F</kbd> Find</span>
+          <span><kbd>Ctrl+H</kbd> Find &amp; Replace</span>
           <span><kbd>Ctrl+\</kbd> Cycle layout</span>
           <span><kbd>Ctrl+\`</kbd> Toggle console</span>
           <span><kbd>Ctrl+Shift+T</kbd> Theme</span>
@@ -1423,12 +1495,16 @@
 
 <script src="core/state.js"></script>
 <script src="core/dom.js"></script>
+<script src="core/themes.js"></script>
 <script src="core/editor.js"></script>
+<script src="core/autoclose.js"></script>
 <script src="core/typewriter.js"></script>
 <script src="core/panels.js"></script>
 <script src="core/live-preview.js"></script>
 <script src="core/console.js"></script>
 <script src="core/formatter.js"></script>
+<script src="core/find.js"></script>
+<script src="core/export.js"></script>
 <script src="core/ui.js"></script>
 <script src="app.js"></script>
 </body>

@@ -19,6 +19,8 @@ function toggleTheme() {
   applyTheme();
   saveSettings();
   refreshAllHL();
+  // Rebuild scheme grid so dot colors reflect the new UI theme
+  openColorSchemePicker();
 }
 
 /* ── Fullscreen ──────────────────────────────────────────────── */
@@ -45,6 +47,7 @@ function openSettings() {
   el.stgAutoPlay.checked        = state.settings.autoPlay;
   el.stgSemiPause.checked       = state.settings.semiPause;
   el.settingsOverlay.classList.add('open');
+  openColorSchemePicker();
 }
 function closeSettings() {
   el.settingsOverlay.classList.remove('open');
@@ -134,14 +137,27 @@ function wireKeyboard() {
     if (ctrl && e.key === ',')  { e.preventDefault(); openSettings();     return; }
     if (ctrl && e.shiftKey && e.key === 'T') { e.preventDefault(); toggleTheme(); return; }
     if (e.key === 'F11')    { e.preventDefault(); toggleFullscreen(); return; }
-    if (e.key === 'Escape') { closeSettings(); return; }
 
     // Ctrl+` — toggle active panel's console
     if (ctrl && e.key === '`') {
       e.preventDefault();
-      // Toggle the console for the panel that contains the focused element
       const side = document.activeElement?.closest('#colLeft') ? 'left' : 'right';
       toggleConsole(side);
+      return;
+    }
+
+    // Ctrl+F — Find, Ctrl+H — Replace
+    if (ctrl && (e.key === 'f' || e.key === 'h')) {
+      e.preventDefault();
+      const side = document.activeElement?.closest('#colRight') ? 'right' : 'left';
+      toggleFind(side, e.key === 'h' ? 'replace' : 'find');
+      return;
+    }
+
+    // Escape — close find bar if open
+    if (e.key === 'Escape') {
+      closeSettings();
+      ['left','right'].forEach(side => { if (FIND[side].open) closeFind(side); });
       return;
     }
 
