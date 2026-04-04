@@ -1,946 +1,1435 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Professional Code Editor - Interactive Tutorials</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Code Editor — Tutorial Studio</title>
 
-  <!-- Prism.js for syntax highlighting -->
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" id="prism-theme-dark" />
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" id="prism-theme-light" disabled />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link id="prism-dark"  href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-vsc-dark-plus.min.css" rel="stylesheet" />
+  <link id="prism-light" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" disabled />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
+  <script src="https://unpkg.com/prettier@3.3.3/standalone.js"></script>
+  <script src="https://unpkg.com/prettier@3.3.3/plugins/babel.js"></script>
+  <script src="https://unpkg.com/prettier@3.3.3/plugins/html.js"></script>
+  <script src="https://unpkg.com/prettier@3.3.3/plugins/postcss.js"></script>
+  <script src="https://unpkg.com/prettier@3.3.3/plugins/estree.js"></script>
 
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    /* ─── Reset ─────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    /* ─── Design tokens ─────────────────────────────────────────── */
     :root {
-      --bg-primary: #000920;
-      --bg-secondary: #1a1a2e;
-      --bg-tertiary: #0d1117;
-      --border-color: #333;
-      --text-primary: #fff;
-      --text-secondary: #999;
-      --accent-color: #4CAF50;
-      --accent-hover: #0f3460;
-      --button-bg: #16213e;
-      --toggle-on: #16a34a;
-      --toggle-off: #dc2626;
-      --shadow: rgba(0,0,0,0.3);
+      --bg0:       #0d1117;
+      --bg1:       #161b22;
+      --bg2:       #1c2128;
+      --bg3:       #21262d;
+      --border:    #30363d;
+      --txt0:      #e6edf3;
+      --txt1:      #8b949e;
+      --txt2:      #484f58;
+      --blue:      #58a6ff;
+      --green:     #3fb950;
+      --yellow:    #e3b341;
+      --red:       #f47067;
+      --purple:    #bc8cff;
+      --caret:     #58a6ff;
+      --tab-h:     38px;
+      --toolbar-h: 46px;
+      --status-h:  24px;
+      --gutter-w:  48px;
+      --font-ui:   'Inter', system-ui, sans-serif;
+      --font-mono: 'Fira Code', 'Consolas', monospace;
+      --editor-font-size:   13px;
+      --editor-line-height: 22px;
+      --r:         5px;
+      --speed:     0.15s;
+    }
+    :root.light {
+      --bg0:    #f6f8fa;
+      --bg1:    #ffffff;
+      --bg2:    #eaeef2;
+      --bg3:    #d0d7de;
+      --border: #d0d7de;
+      --txt0:   #1f2328;
+      --txt1:   #636c76;
+      --txt2:   #bdc1c6;
+      --blue:   #0969da;
+      --green:  #1a7f37;
+      --yellow: #9a6700;
+      --red:    #cf222e;
+      --purple: #8250df;
+      --caret:  #0969da;
     }
 
-    body.light-mode {
-      --bg-primary: #f5f5f5;
-      --bg-secondary: #ffffff;
-      --bg-tertiary: #fafafa;
-      --border-color: #e0e0e0;
-      --text-primary: #000;
-      --text-secondary: #666;
-      --accent-color: #2196F3;
-      --accent-hover: #1976D2;
-      --button-bg: #e3f2fd;
-      --shadow: rgba(0,0,0,0.1);
-    }
+    html, body { height: 100%; overflow: hidden; }
 
     body {
-      margin: 0;
-      height: 100vh;
+      font-family: var(--font-ui);
+      background: var(--bg0);
+      color: var(--txt0);
       display: flex;
       flex-direction: column;
-      background: var(--bg-primary);
-      font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Roboto", "Helvetica Neue", Arial, sans-serif;
-      color: var(--text-primary);
-      overflow: hidden;
-      transition: background 0.3s ease, color 0.3s ease;
+      font-size: 13px;
+      line-height: 1.5;
     }
 
-    #header {
-      background: var(--bg-secondary);
-      padding: 12px 20px;
-      border-bottom: 1px solid var(--border-color);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-shrink: 0;
-      box-shadow: 0 2px 8px var(--shadow);
-    }
-
-    .header-title {
-      font-size: 1.4em;
-      font-weight: 600;
-      color: var(--accent-color);
+    /* ─── Toolbar ────────────────────────────────────────────────── */
+    #toolbar {
+      height: var(--toolbar-h);
+      min-height: var(--toolbar-h);
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
-      gap: 10px;
-    }
-
-    .header-title::before {
-      content: '</>';
-      font-size: 1.2em;
-    }
-
-    .header-actions {
-      display: flex;
-      gap: 15px;
-      align-items: center;
-    }
-
-    #controls {
-      background: var(--bg-secondary);
-      padding: 10px 20px;
-      border-bottom: 1px solid var(--border-color);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-      flex-shrink: 0;
-    }
-
-    .controls-group {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    .speed-controls {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: var(--button-bg);
-      padding: 5px 10px;
-      border-radius: 8px;
-      border: 1px solid var(--border-color);
-    }
-
-    .toggle-controls {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-    }
-
-    button, .icon-btn {
-      background: var(--button-bg);
-      color: var(--text-primary);
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      padding: 8px 14px;
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      font-family: inherit;
-      display: inline-flex;
-      align-items: center;
+      padding: 0 10px;
       gap: 6px;
-      white-space: nowrap;
+      flex-shrink: 0;
+      z-index: 50;
     }
 
-    button:hover, .icon-btn:hover {
-      background: var(--accent-hover);
-      transform: translateY(-1px);
-      box-shadow: 0 2px 8px var(--shadow);
-    }
-
-    button:active, .icon-btn:active {
-      transform: translateY(0);
-    }
-
-    button.active {
-      background: var(--accent-color);
-      border-color: var(--accent-color);
-      font-weight: 600;
-    }
-
-    button.toggle-btn {
-      background: var(--toggle-off);
-      border-color: var(--toggle-off);
-    }
-
-    button.toggle-btn.active {
-      background: var(--toggle-on);
-      border-color: var(--toggle-on);
-    }
-
-    .icon-btn {
-      padding: 8px 10px;
-      font-size: 18px;
-      min-width: 40px;
-      justify-content: center;
-    }
-
-    .speed-btn {
-      padding: 6px 12px;
-      font-size: 16px;
-      font-weight: bold;
-      min-width: 35px;
-    }
-
-    .speed-display {
-      font-size: 13px;
-      color: var(--text-primary);
-      min-width: 75px;
-      text-align: center;
-      font-weight: 500;
-    }
-
-    .modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.7);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-      animation: fadeIn 0.2s ease;
-    }
-
-    .modal-overlay.active {
+    .brand {
       display: flex;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-
-    .modal {
-      background: var(--bg-secondary);
-      border-radius: 12px;
-      padding: 25px;
-      max-width: 500px;
-      width: 90%;
-      max-height: 80vh;
-      overflow-y: auto;
-      box-shadow: 0 10px 40px var(--shadow);
-      animation: slideIn 0.3s ease;
-    }
-
-    @keyframes slideIn {
-      from { transform: translateY(-20px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
-      padding-bottom: 15px;
-      border-bottom: 1px solid var(--border-color);
+      gap: 7px;
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--blue);
+      margin-right: 2px;
+      flex-shrink: 0;
+      user-select: none;
+    }
+    .brand-icon {
+      width: 26px; height: 26px;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-mono);
+      font-size: 11px; font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
     }
 
-    .modal-title {
-      font-size: 1.5em;
-      font-weight: 600;
-      color: var(--accent-color);
+    .tb-sep {
+      width: 1px; height: 22px;
+      background: var(--border);
+      flex-shrink: 0;
     }
 
-    .close-btn {
-      background: none;
+    .tb-spacer { flex: 1; }
+
+    /* Mode tabs in toolbar */
+    .mode-group {
+      display: flex;
+      background: var(--bg0);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 3px;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+    .mode-btn {
+      padding: 3px 11px;
+      border-radius: 3px;
       border: none;
-      font-size: 24px;
+      background: transparent;
+      color: var(--txt1);
+      font-family: var(--font-ui);
+      font-size: 12px;
+      font-weight: 500;
       cursor: pointer;
-      padding: 0;
-      width: 30px;
-      height: 30px;
+      white-space: nowrap;
+      transition: background var(--speed), color var(--speed);
+    }
+    .mode-btn:hover { background: var(--bg3); color: var(--txt0); }
+    .mode-btn.active { background: var(--blue); color: #fff; }
+
+    /* Speed control */
+    .speed-wrap {
       display: flex;
       align-items: center;
-      justify-content: center;
+      gap: 5px;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      background: var(--bg0);
+      padding: 4px 8px;
+      flex-shrink: 0;
+    }
+    .speed-wrap label { font-size: 11px; color: var(--txt1); white-space: nowrap; }
+    .speed-wrap input[type=range] {
+      width: 68px; height: 3px; cursor: pointer;
+      accent-color: var(--blue);
+      background: var(--border);
+      border-radius: 3px;
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .speed-wrap input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 13px; height: 13px;
+      background: var(--blue);
       border-radius: 50%;
-      color: var(--text-primary);
+      cursor: pointer;
     }
-
-    .close-btn:hover {
-      background: var(--accent-hover);
-    }
-
-    .setting-item {
-      margin-bottom: 20px;
-      padding: 15px;
-      background: var(--bg-tertiary);
-      border-radius: 8px;
-      border: 1px solid var(--border-color);
-    }
-
-    .setting-label {
-      font-size: 15px;
+    .speed-num {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--blue);
+      min-width: 18px;
+      text-align: center;
       font-weight: 600;
-      margin-bottom: 8px;
-      display: block;
-      color: var(--text-primary);
     }
 
-    .setting-description {
-      font-size: 13px;
-      color: var(--text-secondary);
-      margin-bottom: 10px;
+    /* Playback buttons */
+    .play-wrap { display: flex; gap: 4px; flex-shrink: 0; }
+    .play-btn {
+      display: flex; align-items: center; gap: 4px;
+      padding: 4px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      background: transparent;
+      color: var(--txt1);
+      font-family: var(--font-ui);
+      font-size: 12px; font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all var(--speed);
     }
+    .play-btn:hover { background: var(--bg3); color: var(--txt0); }
+    .play-btn.run   { background: var(--green); border-color: var(--green); color: #fff; }
+    .play-btn.run:hover { opacity: .85; }
+    #pauseBtn.paused { background: var(--yellow); border-color: var(--yellow); color: #000; }
 
-    .setting-control {
+    /* Icon buttons */
+    .icon-btn {
+      width: 30px; height: 30px;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      background: transparent;
+      color: var(--txt1);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+      transition: all var(--speed);
+      flex-shrink: 0;
+    }
+    .icon-btn:hover { background: var(--bg3); color: var(--txt0); border-color: var(--txt1); }
+    .icon-btn.on { background: var(--blue); border-color: var(--blue); color: #fff; }
+
+    /* ─── Main area ──────────────────────────────────────────────── */
+    #main {
+      flex: 1;
       display: flex;
-      gap: 10px;
-      align-items: center;
+      overflow: hidden;
+      min-height: 0;
     }
 
-    .toggle-switch {
+    /* ─── Editor columns ─────────────────────────────────────────── */
+    .editor-col {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-width: 120px;
+      flex: 1;
       position: relative;
-      display: inline-block;
-      width: 50px;
-      height: 26px;
     }
 
-    .toggle-switch input {
-      opacity: 0;
+    /* Tab bar above each editor */
+    .col-tabs {
+      height: var(--tab-h);
+      min-height: var(--tab-h);
+      background: var(--bg1);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: stretch;
+      padding: 0 4px;
+      gap: 2px;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .col-tab {
+      display: flex; align-items: center; gap: 6px;
+      padding: 0 12px;
+      font-size: 12px; font-weight: 500;
+      color: var(--txt1);
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: color var(--speed), border-color var(--speed);
+      user-select: none;
+    }
+    .col-tab:hover { color: var(--txt0); }
+    .col-tab.active { color: var(--txt0); border-bottom-color: var(--blue); }
+    .col-tab .lang-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .col-tab .tab-close {
+      font-size: 14px; opacity: 0; transition: opacity var(--speed);
+      margin-left: 2px; line-height: 1;
+    }
+    .col-tab:hover .tab-close { opacity: 0.6; }
+    .col-tab.active .tab-close { opacity: 0.5; }
+
+    /* Tab right-side controls */
+    .col-tabs-end {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding-right: 4px;
+      flex-shrink: 0;
+    }
+    .col-tab-btn {
+      width: 22px; height: 22px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: transparent;
+      color: var(--txt1);
+      font-size: 11px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all var(--speed);
+    }
+    .col-tab-btn:hover { background: var(--bg3); color: var(--txt0); }
+    .col-tab-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+
+    /* Progress bar under tab row */
+    .col-progress {
+      height: 2px; background: var(--bg3); flex-shrink: 0; position: relative;
+    }
+    .col-progress-fill {
+      position: absolute; inset: 0 auto 0 0;
+      background: linear-gradient(90deg, var(--blue), var(--purple));
+      width: 0%;
+      transition: width .1s linear;
+    }
+
+    /* ─── The actual editor surface ──────────────────────────────── */
+    .editor-surface {
+      flex: 1; display: flex; overflow: hidden; position: relative;
+      background: var(--bg0);
+    }
+
+    .line-gutter {
+      width: var(--gutter-w);
+      min-width: var(--gutter-w);
+      background: var(--bg1);
+      color: var(--txt2);
+      font-family: var(--font-mono);
+      font-size: var(--editor-font-size, 13px);
+      line-height: var(--editor-line-height, 22px);
+      padding: 14px 8px 14px 0;
+      text-align: right;
+      user-select: none;
+      border-right: 1px solid var(--border);
+      overflow: hidden;
+      white-space: pre;
+      flex-shrink: 0;
+    }
+
+    .editor-inner {
+      flex: 1; position: relative; overflow: hidden;
+    }
+
+    textarea.code-ta {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      border: none; outline: none; resize: none;
+      font-family: var(--font-mono);
+      font-size: var(--editor-font-size, 13px);
+      line-height: var(--editor-line-height, 22px);
+      padding: 14px;
+      tab-size: 2;
+      background: transparent;
+      color: transparent;
+      caret-color: var(--caret);
+      z-index: 2;
+      overflow: auto;
+      /* Scrollbar must not consume layout width — keep in sync with pre */
+      scrollbar-width: thin;
+      scrollbar-color: transparent transparent;
+    }
+    textarea.code-ta:hover,
+    textarea.code-ta:focus {
+      scrollbar-color: var(--border) transparent;
+    }
+    textarea.code-ta::-webkit-scrollbar {
       width: 0;
       height: 0;
     }
+    textarea.code-ta::selection      { background: rgba(88,166,255,0.35); color: transparent; }
+    textarea.code-ta::-moz-selection { background: rgba(88,166,255,0.35); color: transparent; }
+    :root.light textarea.code-ta::selection      { background: rgba(9,105,218,0.25); color: transparent; }
+    :root.light textarea.code-ta::-moz-selection { background: rgba(9,105,218,0.25); color: transparent; }
 
-    .slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: #ccc;
-      transition: 0.3s;
-      border-radius: 26px;
+    pre.hl-layer {
+      position: absolute; inset: 0;
+      /* Layout — never let Prism theme override these */
+      font-family: var(--font-mono) !important;
+      font-size: var(--editor-font-size, 13px) !important;
+      line-height: var(--editor-line-height, 22px) !important;
+      padding: 14px !important;
+      white-space: pre-wrap !important;
+      word-wrap: break-word;
+      pointer-events: none;
+      z-index: 1;
+      overflow: hidden;
+      margin: 0 !important;
+      tab-size: 2;
+      border-radius: 0 !important;
+      border: none !important;
+      box-shadow: none !important;
+      /* Background matches the editor pane — Prism theme colour is allowed through */
+      background: var(--bg0) !important;
+    }
+    /* Strip Prism's structural overrides from the code element
+       but let Prism's TOKEN colours and the base text colour come through */
+    pre.hl-layer > code {
+      display: block;
+      background: transparent !important;
+      font-size: inherit !important;
+      font-family: inherit !important;
+      line-height: inherit !important;
+      border: none !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      white-space: inherit !important;
+      word-wrap: inherit !important;
+      overflow: visible !important;
+      /* Do NOT override color or text-shadow — let Prism theme set those */
     }
 
-    .slider:before {
-      position: absolute;
-      content: "";
-      height: 20px;
-      width: 20px;
-      left: 3px;
-      bottom: 3px;
-      background-color: white;
-      transition: 0.3s;
-      border-radius: 50%;
-    }
+    /* ── Dark mode: VSCode Dark+ palette ── */
+    pre.hl-layer                                         { color: #d4d4d4; }
+    pre.hl-layer .token.keyword                          { color: #569cd6 !important; }
+    pre.hl-layer .token.string,
+    pre.hl-layer .token.attr-value                       { color: #ce9178 !important; }
+    pre.hl-layer .token.template-string .token.string,
+    pre.hl-layer .token.template-string                  { color: #ce9178 !important; }
+    pre.hl-layer .token.template-punctuation             { color: #ce9178 !important; }
+    pre.hl-layer .token.interpolation-punctuation,
+    pre.hl-layer .token.interpolation                    { color: #569cd6 !important; }
+    pre.hl-layer .token.number                           { color: #b5cea8 !important; }
+    pre.hl-layer .token.boolean,
+    pre.hl-layer .token.constant                         { color: #569cd6 !important; }
+    pre.hl-layer .token.function                         { color: #dcdcaa !important; }
+    pre.hl-layer .token.method                           { color: #dcdcaa !important; }
+    pre.hl-layer .token.class-name                       { color: #4ec9b0 !important; }
+    pre.hl-layer .token.comment,
+    pre.hl-layer .token.prolog,
+    pre.hl-layer .token.cdata                            { color: #6a9955 !important; font-style: italic; }
+    pre.hl-layer .token.operator                         { color: #d4d4d4 !important; }
+    pre.hl-layer .token.punctuation                      { color: #d4d4d4 !important; }
+    pre.hl-layer .token.property                         { color: #9cdcfe !important; }
+    pre.hl-layer .token.tag                              { color: #569cd6 !important; }
+    pre.hl-layer .token.attr-name                        { color: #9cdcfe !important; }
+    pre.hl-layer .token.selector                         { color: #d7ba7d !important; }
+    pre.hl-layer .token.atrule,
+    pre.hl-layer .token.rule                             { color: #c586c0 !important; }
+    pre.hl-layer .token.unit                             { color: #b5cea8 !important; }
+    pre.hl-layer .token.regex,
+    pre.hl-layer .token.important                        { color: #d16969 !important; }
+    pre.hl-layer .token.variable                         { color: #9cdcfe !important; }
+    pre.hl-layer .token.parameter                        { color: #9cdcfe !important; }
 
-    input:checked + .slider {
-      background-color: var(--accent-color);
-    }
+    /* ── Light mode: jsplayground / VSCode Light+ palette ── */
+    :root.light pre.hl-layer                             { color: #3b3b3b; }
+    :root.light pre.hl-layer .token.keyword              { color: #0070c1 !important; }
+    :root.light pre.hl-layer .token.string,
+    :root.light pre.hl-layer .token.attr-value           { color: #a31515 !important; }
+    :root.light pre.hl-layer .token.template-string .token.string,
+    :root.light pre.hl-layer .token.template-string      { color: #a31515 !important; }
+    :root.light pre.hl-layer .token.template-punctuation { color: #a31515 !important; }
+    :root.light pre.hl-layer .token.interpolation-punctuation,
+    :root.light pre.hl-layer .token.interpolation        { color: #0070c1 !important; }
+    :root.light pre.hl-layer .token.number               { color: #098658 !important; }
+    :root.light pre.hl-layer .token.boolean,
+    :root.light pre.hl-layer .token.constant             { color: #0070c1 !important; }
+    :root.light pre.hl-layer .token.function             { color: #795e26 !important; }
+    :root.light pre.hl-layer .token.method               { color: #795e26 !important; }
+    :root.light pre.hl-layer .token.class-name           { color: #267f99 !important; }
+    :root.light pre.hl-layer .token.comment,
+    :root.light pre.hl-layer .token.prolog,
+    :root.light pre.hl-layer .token.cdata                { color: #008000 !important; font-style: italic; }
+    :root.light pre.hl-layer .token.operator             { color: #3b3b3b !important; }
+    :root.light pre.hl-layer .token.punctuation          { color: #3b3b3b !important; }
+    :root.light pre.hl-layer .token.property             { color: #001080 !important; }
+    :root.light pre.hl-layer .token.tag                  { color: #800000 !important; }
+    :root.light pre.hl-layer .token.attr-name            { color: #e50000 !important; }
+    :root.light pre.hl-layer .token.selector             { color: #800000 !important; }
+    :root.light pre.hl-layer .token.atrule,
+    :root.light pre.hl-layer .token.rule                 { color: #af00db !important; }
+    :root.light pre.hl-layer .token.unit                 { color: #098658 !important; }
+    :root.light pre.hl-layer .token.regex,
+    :root.light pre.hl-layer .token.important            { color: #811f3f !important; }
+    :root.light pre.hl-layer .token.variable             { color: #001080 !important; }
+    :root.light pre.hl-layer .token.parameter            { color: #001080 !important; }
 
-    input:checked + .slider:before {
-      transform: translateX(24px);
-    }
+    /* ── Same palette for the typewriter output surface ── */
+    .output-surface pre { color: #d4d4d4; }
+    :root.light .output-surface pre { color: #1f2328; }
+    .output-surface .token.keyword              { color: #569cd6 !important; }
+    .output-surface .token.string,
+    .output-surface .token.attr-value           { color: #ce9178 !important; }
+    .output-surface .token.number               { color: #b5cea8 !important; }
+    .output-surface .token.boolean,
+    .output-surface .token.constant             { color: #569cd6 !important; }
+    .output-surface .token.function             { color: #dcdcaa !important; }
+    .output-surface .token.class-name           { color: #4ec9b0 !important; }
+    .output-surface .token.comment,
+    .output-surface .token.prolog               { color: #6a9955 !important; font-style: italic; }
+    .output-surface .token.operator,
+    .output-surface .token.punctuation          { color: #d4d4d4 !important; }
+    .output-surface .token.property             { color: #9cdcfe !important; }
+    .output-surface .token.tag                  { color: #569cd6 !important; }
+    .output-surface .token.attr-name            { color: #9cdcfe !important; }
+    .output-surface .token.selector             { color: #d7ba7d !important; }
+    .output-surface .token.atrule,
+    .output-surface .token.rule                 { color: #c586c0 !important; }
+    .output-surface .token.unit                 { color: #b5cea8 !important; }
+    .output-surface .token.variable             { color: #9cdcfe !important; }
+    :root.light .output-surface .token.keyword              { color: #0070c1 !important; }
+    :root.light .output-surface .token.string,
+    :root.light .output-surface .token.attr-value           { color: #a31515 !important; }
+    :root.light .output-surface .token.number               { color: #098658 !important; }
+    :root.light .output-surface .token.boolean,
+    :root.light .output-surface .token.constant             { color: #0070c1 !important; }
+    :root.light .output-surface .token.function,
+    :root.light .output-surface .token.method               { color: #795e26 !important; }
+    :root.light .output-surface .token.class-name           { color: #267f99 !important; }
+    :root.light .output-surface .token.comment              { color: #008000 !important; font-style: italic; }
+    :root.light .output-surface .token.operator             { color: #3b3b3b !important; }
+    :root.light .output-surface .token.punctuation          { color: #3b3b3b !important; }
+    :root.light .output-surface .token.property             { color: #001080 !important; }
+    :root.light .output-surface .token.tag                  { color: #800000 !important; }
+    :root.light .output-surface .token.attr-name            { color: #e50000 !important; }
+    :root.light .output-surface .token.selector             { color: #800000 !important; }
+    :root.light .output-surface .token.variable,
+    :root.light .output-surface .token.parameter            { color: #001080 !important; }
 
-    input[type="range"] {
-      width: 100%;
-      height: 6px;
-      border-radius: 3px;
-      background: var(--border-color);
-      outline: none;
-      -webkit-appearance: none;
-    }
+    /* No line numbers variant */
+    .editor-col.no-gutter .line-gutter { display: none; }
 
-    input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: var(--accent-color);
-      cursor: pointer;
-    }
-
-    input[type="range"]::-moz-range-thumb {
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: var(--accent-color);
-      cursor: pointer;
-      border: none;
-    }
-
-    .range-value {
-      font-weight: 600;
-      color: var(--accent-color);
-      min-width: 40px;
-      text-align: right;
-    }
-
-    #main-container {
-      display: flex;
+    /* ─── Output surface (for Raw / Render modes) ─────────────────  */
+    .output-surface {
       flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      background: var(--bg0);
+      padding: 14px;
+      font-family: var(--font-mono);
+      font-size: var(--editor-font-size, 13px);
+      line-height: 1.65;
+      display: none;
+    }
+    .output-surface.visible { display: block; }
+    .output-surface pre {
+      margin: 0 !important; padding: 0 !important;
+      background: transparent !important;
+      border: none !important; border-radius: 0 !important;
+      box-shadow: none !important; text-shadow: none !important;
+      white-space: pre-wrap; word-wrap: break-word;
+    }
+    .output-surface code {
+      background: transparent !important;
+      font-size: inherit !important;
+      font-family: inherit !important;
+      text-shadow: none !important;
+      border: none !important;
+      padding: 0 !important;
+    }
+
+    /* ─── Internal panel live-split layout ──────────────────────── */
+    /* Wraps editor-pane + h-resizer + live-preview inside .editor-col */
+    .panel-live-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column; /* default: stacked (live preview hidden) */
       overflow: hidden;
       min-height: 0;
     }
+    .editor-col.live-split .panel-live-wrap {
+      flex-direction: row;    /* live mode: side by side */
+    }
 
-    .split-panel {
+    .panel-editor-pane {
       flex: 1;
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      position: relative;
+      min-width: 0;
       min-height: 0;
-      background: var(--bg-tertiary);
     }
 
-    .panel-header {
-      background: var(--bg-secondary);
-      padding: 8px 15px;
-      border-bottom: 1px solid var(--border-color);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-shrink: 0;
-    }
-
-    .panel-title {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--accent-color);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .panel-controls {
-      display: flex;
-      gap: 6px;
-    }
-
-    .panel-controls button {
-      padding: 4px 10px;
-      font-size: 12px;
-    }
-
-    .resizer {
-      width: 5px;
-      background: var(--border-color);
+    /* Horizontal resizer between editor and preview */
+    .panel-h-resizer {
+      display: none;
+      width: 4px;
+      background: var(--border);
       cursor: col-resize;
-      position: relative;
-      transition: background 0.2s;
       flex-shrink: 0;
+      transition: background var(--speed);
+      z-index: 10;
     }
-
-    .resizer:hover {
-      background: var(--accent-color);
-    }
-
-    .resizer::before {
+    .panel-h-resizer:hover,
+    .panel-h-resizer.active { background: var(--blue); }
+    .panel-h-resizer::after {
       content: '';
       position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      width: 2px;
-      height: 40px;
-      background: var(--text-secondary);
+      inset: 0;
+      margin: auto -4px;
+      width: 12px;
+    }
+    .editor-col.live-split .panel-h-resizer { display: block; }
+
+    /* ─── Live preview panel ─────────────────────────────────────── */
+    .live-preview {
+      flex: 0 0 45%;   /* default width in live-split */
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      min-width: 120px;
+    }
+    .live-preview.visible { display: flex; }
+    .live-preview-toolbar {
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 5px 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+      font-size: 11px;
+      color: var(--txt1);
+    }
+    .live-preview-toolbar .preview-url {
+      flex: 1;
+      background: var(--bg0);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 3px 10px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--txt1);
+      cursor: default;
+      user-select: none;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .live-preview iframe {
+      flex: 1;
+      width: 100%;
+      border: none;
+      background: #fff;
     }
 
-    .panel-content {
+    /* Rendered HTML output blocks */
+    .out-html-preview {
+      background: #fff;
+      color: #1f2328;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+    :root.light .out-html-preview { box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+
+    .out-block { margin-bottom: 10px; }
+    .out-block-label {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .07em;
+      padding: 2px 7px;
+      border-radius: var(--r) var(--r) 0 0;
+    }
+    .out-block-label.js  { background: rgba(227,179,65,.18); color: var(--yellow); }
+    .out-block-label.css { background: rgba(88,166,255,.15); color: var(--blue); }
+    .out-block-body {
+      border: 1px solid var(--border);
+      border-radius: 0 var(--r) var(--r) var(--r);
+      padding: 10px 12px;
+      background: var(--bg1);
+      overflow-x: auto;
+    }
+    .out-block-body.js-body  { border-color: rgba(227,179,65,.25); }
+    .out-block-body.css-body { border-color: rgba(88,166,255,.2); }
+
+    /* Typewriter caret */
+    .tw-caret {
+      display: inline-block; width: 2px; height: 1em;
+      background: var(--blue);
+      vertical-align: text-bottom;
+      animation: blink .85s step-end infinite;
+      margin-left: 1px;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* ─── Vertical resizer between columns ───────────────────────── */
+    .v-resizer {
+      width: 4px;
+      background: var(--border);
+      cursor: col-resize;
+      flex-shrink: 0;
+      position: relative;
+      transition: background var(--speed);
+      z-index: 10;
+    }
+    .v-resizer:hover, .v-resizer.active { background: var(--blue); }
+    .v-resizer::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      margin: auto -4px;
+      width: 12px;
+    }
+
+    /* ─── Status bar ─────────────────────────────────────────────── */
+    #statusbar {
+      height: var(--status-h);
+      min-height: var(--status-h);
+      background: var(--blue);
+      color: rgba(255,255,255,.9);
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      gap: 12px;
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+    .sb { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+    .sb-sep { opacity: .35; }
+    .sb-r { margin-left: auto; display: flex; gap: 12px; }
+    .sb-badge {
+      background: rgba(255,255,255,.18);
+      border-radius: 3px;
+      padding: 0 5px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+    }
+
+    /* ─── Settings modal ─────────────────────────────────────────── */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 200;
+      display: none; align-items: center; justify-content: center;
+    }
+    .overlay.open { display: flex; }
+
+    .modal {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 22px;
+      width: 420px; max-width: 94vw;
+      max-height: 88vh; overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,.45);
+      animation: modal-in .16s ease;
+    }
+    @keyframes modal-in { from{transform:translateY(-10px);opacity:0} }
+
+    .modal-hd {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 18px; padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-title { font-size: 15px; font-weight: 600; }
+
+    .stg-group { margin-bottom: 16px; }
+    .stg-group-title {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--txt1); margin-bottom: 8px;
+    }
+    .stg-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 9px 11px;
+      background: var(--bg1);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      margin-bottom: 5px;
+    }
+    .stg-info { flex: 1; min-width: 0; }
+    .stg-label { font-size: 12px; font-weight: 500; display: block; }
+    .stg-desc  { font-size: 11px; color: var(--txt1); margin-top: 1px; }
+
+    /* toggle switch */
+    .toggle { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-track {
+      position: absolute; inset: 0;
+      background: var(--bg3); border-radius: 20px;
+      cursor: pointer; border: 1px solid var(--border);
+      transition: background var(--speed);
+    }
+    .toggle-track::after {
+      content: ''; position: absolute;
+      top: 2px; left: 2px;
+      width: 14px; height: 14px;
+      background: #fff; border-radius: 50%;
+      transition: transform var(--speed);
+    }
+    .toggle input:checked + .toggle-track { background: var(--blue); border-color: var(--blue); }
+    .toggle input:checked + .toggle-track::after { transform: translateX(16px); }
+
+    .stg-row input[type=range] { width: 100px; accent-color: var(--blue); cursor: pointer; }
+    .stg-range-val { font-family: var(--font-mono); font-size: 11px; color: var(--blue); font-weight: 600; min-width: 32px; text-align: right; }
+
+    /* ─── Toast ──────────────────────────────────────────────────── */
+    #toast {
+      position: fixed; bottom: 36px; left: 50%;
+      transform: translateX(-50%) translateY(12px);
+      background: var(--bg2); border: 1px solid var(--border);
+      color: var(--txt0); padding: 7px 16px;
+      border-radius: 20px; font-size: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,.35);
+      z-index: 300; opacity: 0;
+      transition: opacity .2s, transform .2s;
+      pointer-events: none; white-space: nowrap;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ─── Keyboard hint badge ─────────────────────────────────────── */
+    kbd {
+      display: inline-block;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 1px 4px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+    }
+
+    /* ─── Scrollbars ──────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 7px; height: 7px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--txt2); }
+
+    /* Token overrides are scoped to pre.hl-layer and .output-surface above */
+
+    /* ─── Per-panel mode bar (inside .editor-col) ───────────────── */
+    .panel-modebar {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 6px;
+      height: var(--tab-h);
+      min-height: var(--tab-h);
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .panel-modebar .mode-btn {
+      padding: 3px 10px;
+      border-radius: 3px;
+      border: none;
+      background: transparent;
+      color: var(--txt1);
+      font-family: var(--font-ui);
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background var(--speed), color var(--speed);
+    }
+    .panel-modebar .mode-btn:hover { background: var(--bg3); color: var(--txt0); }
+    .panel-modebar .mode-btn.active { background: var(--blue); color: #fff; }
+    .panel-modebar .play-wrap {
+      display: flex; gap: 3px; margin-left: 4px;
+    }
+    .panel-modebar .play-btn {
+      padding: 3px 8px;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      background: transparent;
+      color: var(--txt1);
+      font-family: var(--font-ui);
+      font-size: 11px; font-weight: 500;
+      cursor: pointer;
+      transition: all var(--speed);
+    }
+    .panel-modebar .play-btn:hover { background: var(--bg3); color: var(--txt0); }
+    .panel-modebar .play-btn.run   { background: var(--green); border-color: var(--green); color: #fff; }
+    .panel-modebar .play-btn.run:hover { opacity: .85; }
+    .panel-modebar .play-btn.paused { background: var(--yellow); border-color: var(--yellow); color: #000; }
+    .panel-modebar .sep { width:1px; height:18px; background:var(--border); margin: 0 2px; flex-shrink:0; }
+    .panel-modebar .mb-spacer { flex: 1; }
+    .panel-modebar .fmt-btn {
+      padding: 3px 8px;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      background: transparent;
+      color: var(--txt1);
+      font-size: 11px;
+      cursor: pointer;
+      transition: all var(--speed);
+      white-space: nowrap;
+    }
+    .panel-modebar .fmt-btn:hover { background: var(--purple); border-color: var(--purple); color: #fff; }
+    .panel-modebar .play-run-btn {
+      display: flex; align-items: center; gap: 4px;
+      padding: 3px 10px;
+      border: none;
+      border-radius: var(--r);
+      background: var(--green);
+      color: #fff;
+      font-family: var(--font-ui);
+      font-size: 11px; font-weight: 600;
+      cursor: pointer;
+      transition: opacity var(--speed);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .panel-modebar .play-run-btn:hover { opacity: .85; }
+    /* Hide when not in edit mode */
+    .editor-col:not(.mode-edit) .play-run-btn { display: none; }
+    .panel-modebar .console-toggle {
+      display: flex; align-items: center; gap: 3px;
+      padding: 3px 8px;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      background: transparent;
+      color: var(--txt1);
+      font-size: 11px;
+      cursor: pointer;
+      transition: all var(--speed);
+    }
+    .panel-modebar .console-toggle:hover { background: var(--bg3); color: var(--txt0); }
+    .panel-modebar .console-toggle.active { background: var(--bg0); border-color: var(--txt2); color: var(--txt0); }
+
+    /* ─── Console drawer (per panel, inside .editor-col) ─────────── */
+    .console-drawer {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      height: 0;
+      overflow: hidden;
+      border-top: 1px solid var(--border);
+      background: var(--bg1);
+      transition: height .18s ease;
+    }
+    .console-drawer.open {
+      height: var(--cn-h, 200px);
+    }
+    .cn-resizer {
+      height: 4px;
+      background: var(--border);
+      cursor: ns-resize;
+      flex-shrink: 0;
+      transition: background var(--speed);
+    }
+    .cn-resizer:hover { background: var(--blue); }
+    .cn-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 8px;
+      height: 30px;
+      min-height: 30px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .cn-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--txt1);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-right: 4px;
+      flex-shrink: 0;
+    }
+    .cn-filter {
+      padding: 2px 8px;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      background: transparent;
+      color: var(--txt1);
+      font-family: var(--font-ui);
+      font-size: 11px;
+      cursor: pointer;
+      transition: all var(--speed);
+    }
+    .cn-filter:hover { background: var(--bg3); color: var(--txt0); }
+    .cn-filter.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+    .cn-filter.warn.active  { background: var(--yellow); border-color: var(--yellow); color: #000; }
+    .cn-filter.error.active { background: var(--red);    border-color: var(--red);    color: #fff; }
+    .cn-spacer { flex: 1; }
+    .cn-action {
+      padding: 2px 8px;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      background: transparent;
+      color: var(--txt1);
+      font-size: 11px;
+      cursor: pointer;
+      transition: all var(--speed);
+    }
+    .cn-action:hover { background: var(--bg3); color: var(--txt0); }
+    .console-list {
       flex: 1;
       overflow-y: auto;
-      overflow-x: hidden;
-      background: var(--bg-tertiary);
-      min-height: 0;
-      position: relative;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.5;
     }
-
-   textarea.code-editor {
-  width: 100%;
-  height: 100%;
-  border: none;
-  resize: none;
-  outline: none;
-  font-family: "Fira Code", "Consolas", "Monaco", monospace;
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-  padding: 20px;
-  font-size: 14px;
-  line-height: 1.6;
-  tab-size: 2;
-  
-  /* Disable spell check and autocorrect */
-  -webkit-user-modify: read-write-plaintext-only;
-}
-
-/* Remove all text decorations (underlines) */
-textarea.code-editor,
-textarea.code-editor:focus,
-textarea.code-editor:active,
-textarea.code-editor::selection,
-textarea.code-editor::-moz-selection {
-  text-decoration: none !important;
-  -webkit-text-decoration: none !important;
-  text-decoration-line: none !important;
-  text-decoration-color: transparent !important;
-  text-decoration-style: none !important;
-}
-
-/* Remove browser default decorations */
-textarea.code-editor::-webkit-input-placeholder {
-  text-decoration: none !important;
-}
-
-textarea.code-editor::-moz-placeholder {
-  text-decoration: none !important;
-}
-
-textarea.code-editor:-ms-input-placeholder {
-  text-decoration: none !important;
-}
-
-    .editor-wrapper {
+    .cn-empty {
+      padding: 14px 12px;
+      color: var(--txt2);
+      font-size: 12px;
+      font-style: italic;
+    }
+    .cn-row {
       display: flex;
-      width: 100%;
-      height: 100%;
-      position: relative;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 3px 12px;
+      border-bottom: 1px solid var(--border);
+      min-height: 24px;
     }
+    .cn-row:last-child { border-bottom: none; }
+    .cn-row.cn-log   { color: var(--txt0); }
+    .cn-row.cn-info  { color: var(--blue);   background: rgba(88,166,255,.05); }
+    .cn-row.cn-warn  { color: var(--yellow); background: rgba(227,179,65,.08); }
+    .cn-row.cn-error { color: var(--red);    background: rgba(244,112,103,.08); }
+    .cn-icon { flex-shrink: 0; width: 14px; font-size: 11px; padding-top: 1px; }
+    .cn-body { flex: 1; white-space: pre-wrap; word-break: break-all; }
+    .cn-str  { color: var(--green); }
+    .cn-num  { color: var(--blue); }
+    .cn-bool { color: var(--purple); }
+    .cn-null, .cn-undef { color: var(--txt2); }
+    .cn-obj  { color: var(--txt1); }
+    :root.light .cn-str  { color: #1a7f37; }
+    :root.light .cn-num  { color: #0550ae; }
+    :root.light .cn-bool { color: #8250df; }
 
-    .line-numbers {
-      background: var(--bg-secondary);
-      color: var(--text-secondary);
-      padding: 20px 10px;
-      text-align: right;
-      font-family: "Fira Code", "Consolas", "Monaco", monospace;
-      font-size: 14px;
-      line-height: 1.6;
-      user-select: none;
-      border-right: 1px solid var(--border-color);
-      min-width: 40px;
-      white-space: pre;
+    /* Console badge on toolbar button */
+    .cn-badge {
+      display: inline-block;
+      background: var(--txt2);
+      color: #fff;
+      border-radius: 8px;
+      font-size: 9px;
+      font-family: var(--font-mono);
+      padding: 0 4px;
+      margin-left: 2px;
+      min-width: 14px;
+      text-align: center;
+      vertical-align: middle;
+      line-height: 14px;
+    }
+    .cn-badge-warn { background: var(--yellow); color: #000; }
+    .cn-badge-err  { background: var(--red);    color: #fff; }
+
+    /* ─── Console split-pane mode ───────────────────────────────── */
+    /* When .editor-col has .console-split, the panel-live-wrap
+       becomes a row so the console appears as a right side-pane. */
+    .editor-col.console-split .panel-live-wrap {
+      flex-direction: row;
+    }
+    /* Hide the horizontal drawer in split-pane mode */
+    .editor-col.console-split .console-drawer { display: none; }
+
+    /* The console side-pane (right of editor in split mode) */
+    .cn-side-pane {
+      display: none;
+      flex-direction: column;
+      flex: 0 0 320px;
+      min-width: 160px;
+      max-width: 60%;
+      border-left: 1px solid var(--border);
+      background: var(--bg1);
       overflow: hidden;
     }
+    .editor-col.console-split .cn-side-pane { display: flex; }
 
-    .editor-wrapper.no-line-numbers .line-numbers {
+    /* Resizer between editor pane and console side-pane */
+    .cn-side-resizer {
       display: none;
+      width: 4px;
+      background: var(--border);
+      cursor: col-resize;
+      flex-shrink: 0;
+      transition: background var(--speed);
+      z-index: 10;
     }
+    .cn-side-resizer:hover, .cn-side-resizer.active { background: var(--blue); }
+    .editor-col.console-split .cn-side-resizer { display: block; }
 
-    .editor-wrapper.no-line-numbers textarea.code-editor {
-      width: 100%;
-    }
+    /* Split button active state */
+    .cn-action.active { background: var(--blue); border-color: var(--blue); color: #fff; }
 
-    .editor-wrapper textarea.code-editor {
-      flex: 1;
-    }
-
-    .content-display {
-      padding: 20px;
-      width: 100%;
-      height: 100%;
-      overflow-y: auto;
-    }
-
-    /* Simple fixed smaller output font */
-.content-display,
-.content-display pre code,
-.rendered-html-content {
-  font-size: 14px !important;
-}
-
-.code-block pre code {
-  font-size: 14px !important;
-}
-
-.script-label, 
-.style-label {
-  font-size: 14px !important;
-}
-
-textarea.code-editor {
-  font-size: 14px !important;
-  line-height: 1.6;
-}
-
-.highlight-overlay {
-  font-size: 14px !important;
-  line-height: 1.6;
-}
-
-.line-numbers {
-  font-size: 14px !important;
-  line-height: 1.6;
-}
-
-    .panel-content.rendered-mode {
-      background: #ffffff;
-    }
-
-    body.light-mode .panel-content.rendered-mode {
-      background: #fafafa;
-    }
-
-    .panel-content.rendered-mode .content-display {
-      color: #333;
-    }
-
-    pre {
-      background: var(--bg-tertiary) !important;
-      border-radius: 8px;
-      padding: 16px;
-      color: var(--text-primary) !important;
-      overflow-x: auto;
-      margin: 10px 0;
-      border: 1px solid var(--border-color);
-    }
-
-    code {
-      font-family: "Fira Code", "Consolas", "Monaco", monospace;
-      font-size: 12px;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-    }
-
-    .blinking-caret {
-      border-right: 2px solid var(--accent-color);
-      animation: blink 0.8s infinite;
-      display: inline-block;
-    }
-
-    @keyframes blink {
-      0%, 100% { border-color: transparent; }
-      50% { border-color: var(--accent-color); }
-    }
-
-    .script-label, .style-label {
-      padding: 6px 12px;
-      border-radius: 6px 6px 0 0;
-      font-size: 12px;
-      margin-top: 15px;
-      display: inline-block;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .script-label {
-      background: #fbbf24;
-      color: #000;
-    }
-
-    .style-label {
-      background: #3b82f6;
-      color: #fff;
-    }
-
-    .rendered-html-content {
-      background: #fff;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px var(--shadow);
-      margin-bottom: 20px;
-    }
-
-    body.light-mode .rendered-html-content {
-      background: #ffffff;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-
-    .code-block {
-      transition: all 0.3s ease;
-    }
-
-    .code-block.hidden {
-      display: none;
-    }
-
-    .status-indicator {
-      font-size: 12px;
-      padding: 4px 10px;
-      border-radius: 12px;
-      background: var(--button-bg);
-      color: var(--text-primary);
-      cursor: pointer;
-      user-select: none;
-      border: 1px solid var(--border-color);
-      transition: all 0.3s ease;
-    }
-
-    .status-indicator:hover {
-      transform: translateY(-1px);
-    }
-
-    .status-indicator.active {
-      background: var(--toggle-on);
-      border-color: var(--toggle-on);
-      color: white;
-    }
-
-    .status-indicator.inactive {
-      background: var(--toggle-off);
-      border-color: var(--toggle-off);
-      color: white;
-    }
-
-    body.single-panel-mode .split-panel.right-panel,
-    body.single-panel-mode .resizer {
-      display: none;
-    }
-
-    body.single-panel-mode .split-panel.left-panel {
-      width: 100%;
-    }
-
-    .hidden-element {
-      display: none !important;
-    }
-
-    .shortcut-hint {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: var(--bg-secondary);
-      color: var(--text-primary);
-      padding: 12px 18px;
-      border-radius: 8px;
-      font-size: 13px;
-      box-shadow: 0 4px 12px var(--shadow);
-      opacity: 0;
-      transform: translateY(10px);
-      transition: all 0.3s ease;
-      pointer-events: none;
-      z-index: 100;
-      border: 1px solid var(--border-color);
-    }
-
-    .shortcut-hint.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    .shortcut-hint kbd {
-      background: var(--bg-tertiary);
-      padding: 3px 8px;
-      border-radius: 4px;
-      font-family: monospace;
-      border: 1px solid var(--border-color);
-      font-size: 12px;
-    }
-
-    @media (max-width: 768px) {
-      #controls {
-        padding: 8px 12px;
-      }
-
-      .controls-group {
-        width: 100%;
-        justify-content: center;
-      }
-
-      .modal {
-        width: 95%;
-        padding: 20px;
-      }
-
-      button {
-        font-size: 12px;
-        padding: 6px 10px;
-      }
-
-      .header-title {
-        font-size: 1.1em;
-      }
-    }
-
-    ::-webkit-scrollbar {
-      width: 10px;
-      height: 10px;
-    }
-
-    ::-webkit-scrollbar-track {
-      background: var(--bg-tertiary);
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: var(--border-color);
-      border-radius: 5px;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-      background: var(--text-secondary);
-    }
-
-/* Green comments for all modes */
-
-/* Edit mode - syntax highlighted overlay */
-.highlight-overlay code .token.comment,
-.highlight-overlay code .token.prolog,
-.highlight-overlay code .token.doctype,
-.highlight-overlay code .token.cdata {
-  color: #6a9955 !important; /* VS Code green */
-  font-style: italic;
-}
-
-/* Raw mode - code display */
-.content-display pre code .token.comment,
-.content-display pre code .token.prolog,
-.content-display pre code .token.doctype,
-.content-display pre code .token.cdata {
-  color: #6a9955 !important;
-  font-style: italic;
-}
-
-/* Render mode - code blocks */
-.code-block pre code .token.comment,
-.code-block pre code .token.prolog,
-.code-block pre code .token.doctype,
-.code-block pre code .token.cdata {
-  color: #6a9955 !important;
-  font-style: italic;
-}
-
-/* Light mode comments */
-body.light-mode .highlight-overlay code .token.comment,
-body.light-mode .content-display pre code .token.comment,
-body.light-mode .code-block pre code .token.comment {
-  color: #008000 !important; /* Brighter green for light mode */
-  font-style: italic;
-}
-
-
-
+    /* ─── Utility ────────────────────────────────────────────────── */
+    .hidden { display: none !important; }
   </style>
 </head>
-<body class="single-panel-mode">
+<body>
 
-  <div id="controls">
-    <div class="controls-group">
-      <div class="speed-controls">
-        <button class="speed-btn" id="decreaseSpeed" title="Decrease Speed">-</button>
-        <div class="speed-display" id="speedDisplay">Speed: 20ms</div>
-        <button class="speed-btn" id="increaseSpeed" title="Increase Speed">+</button>
-      </div>
-      <button id="themeToggleBtn" class="icon-btn" title="Toggle Dark/Light Mode">🌓</button>
-      <button id="settingsBtn" class="icon-btn" title="Settings">⚙️</button>
-      <button id="fullscreenBtn" class="icon-btn" title="Toggle Fullscreen">⛶</button>
-    </div>
-  
-
-    
-
-    <div class="controls-group">
-      <div class="toggle-controls">
-        <button id="pauseBtn" class="hidden-element" title="Pause/Resume"><span class="pause-icon">⏸</span> Pause</button>
-        <button id="resetBtn" class="hidden-element" title="Reset">↻ Reset</button>
-        <span class="status-indicator hidden-element" id="cssStatusIndicator">CSS: ON</span>
-        <span class="status-indicator hidden-element" id="jsStatusIndicator">JS: ON</span>
-      </div>
-    </div>
+<!-- ═══ TOOLBAR ══════════════════════════════════════════════════════ -->
+<div id="toolbar">
+  <div class="brand">
+    <div class="brand-icon">&lt;/&gt;</div>
+    Code Editor
   </div>
 
+  <div class="tb-sep"></div>
 
-  <div class="modal-overlay" id="settingsModal">
-    <div class="modal">
-      <div class="modal-header">
-        <div class="modal-title">⚙️ Settings</div>
-        <button class="close-btn" id="closeSettingsBtn">×</button>
-      </div>
-
-      <div class="setting-item">
-        <label class="setting-label">Line Numbers</label>
-        <div class="setting-description">Show or hide line numbers in the editor</div>
-        <div class="setting-control">
-          <label class="toggle-switch">
-            <input type="checkbox" id="lineNumbersToggle" checked>
-            <span class="slider"></span>
-          </label>
-        </div>
-      </div>
-
-      <div class="setting-item">
-        <label class="setting-label">Split View</label>
-        <div class="setting-description">Enable side-by-side comparison of two code snippets</div>
-        <div class="setting-control">
-          <button id="splitViewBtnModal" class="toggle-btn">Enable Split View</button>
-        </div>
-      </div>
-
-      <div class="setting-item">
-        <label class="setting-label">Auto-Run on Mode Switch</label>
-        <div class="setting-description">Automatically start typewriter effect when switching modes</div>
-        <div class="setting-control">
-          <label class="toggle-switch">
-            <input type="checkbox" id="autoRunToggle" checked>
-            <span class="slider"></span>
-          </label>
-        </div>
-      </div>
-
-      <div class="setting-item">
-        <label class="setting-label">Font Size</label>
-        <div class="setting-description">Adjust the editor font size</div>
-        <div class="setting-control">
-          <input type="range" id="fontSizeSlider" min="10" max="24" value="14" step="1">
-          <span class="range-value" id="fontSizeValue">14px</span>
-        </div>
-      </div>
-
-      <div class="setting-item">
-        <label class="setting-label">Theme</label>
-        <div class="setting-description">Choose your preferred color theme</div>
-        <div class="setting-control">
-          <button id="themeToggleBtnModal" class="toggle-btn">🌓 Toggle Theme</button>
-        </div>
-      </div>
-    </div>
+  <!-- Typewriter speed -->
+  <div class="speed-wrap" title="Typewriter character speed">
+    <label for="speedRange">Speed</label>
+    <input type="range" id="speedRange" min="1" max="10" value="6" step="1" />
+    <span class="speed-num" id="speedNum">6</span>
   </div>
 
-  <div id="main-container">
-    <div class="split-panel left-panel">
-      <div class="panel-header">
-        <div class="panel-title">Left Panel</div>
-        <div class="panel-controls">
-  <button class="panel-btn active" data-panel="left" data-mode="edit" title="Edit Mode">✏️ Edit</button>
-  <button class="panel-btn" data-panel="left" data-mode="raw" title="Raw Code">📝 Raw</button>
-  <button class="panel-btn" data-panel="left" data-mode="render" title="Rendered">🎨 Render</button>
-  <button class="panel-pause-btn hidden-element" data-panel="left" title="Pause/Resume"><span class="pause-icon">⏸</span></button>
-  <button class="panel-reset-btn hidden-element" data-panel="left" title="Reset">↻</button>
-  <span class="panel-html-toggle status-indicator hidden-element" data-panel="left">HTML</span>
-  <span class="panel-js-toggle status-indicator hidden-element" data-panel="left">JS</span>
-  <span class="panel-css-toggle status-indicator hidden-element" data-panel="left">CSS</span>
+  <div class="tb-spacer"></div>
+
+  <!-- Right-side icon buttons -->
+  <button class="icon-btn" id="layoutBtn" title="Cycle layout (Ctrl+\)">⊟</button>
+  <button class="icon-btn" id="themeBtn"  title="Toggle theme (Ctrl+Shift+T)">◑</button>
+  <button class="icon-btn" id="settingsBtn" title="Settings (Ctrl+,)">⚙</button>
+  <button class="icon-btn" id="fsBtn"     title="Fullscreen (F11)">⛶</button>
 </div>
+
+<!-- ═══ MAIN ═════════════════════════════════════════════════════════ -->
+<div id="main">
+
+  <!-- ─── LEFT PANEL ─────────────────────────────────────────────── -->
+  <div class="editor-col" id="colLeft">
+    <div class="panel-live-wrap" id="liveWrapL">
+
+      <!-- Editor pane (left side of internal split) -->
+      <div class="panel-editor-pane">
+        <div class="col-tabs">
+          <div class="col-tab"        id="LtabHtml" data-lang="html"><span class="lang-dot" style="background:var(--red)"></span>HTML</div>
+          <div class="col-tab"        id="LtabCss"  data-lang="css" ><span class="lang-dot" style="background:var(--blue)"></span>CSS</div>
+          <div class="col-tab active" id="LtabJs"   data-lang="js"  ><span class="lang-dot" style="background:var(--yellow)"></span>JS</div>
+          <div class="col-tabs-end">
+            <button class="col-tab-btn" id="lineNumBtnL" title="Toggle line numbers" style="font-family:var(--font-mono)">¶</button>
+            <button class="col-tab-btn" id="copyBtnL"    title="Copy">⎘</button>
+            <button class="col-tab-btn" id="clearBtnL"   title="Clear">✕</button>
+          </div>
+        </div>
+        <div class="panel-modebar">
+          <button class="mode-btn active" data-mode="edit" title="Edit mode">✏ Edit</button>
+          <button class="mode-btn"        data-mode="raw"  title="Typewriter">⌨ Raw</button>
+          <button class="mode-btn"        data-mode="live" title="Live preview">⚡ Live</button>
+          <div class="sep"></div>
+          <div class="play-wrap" id="playWrapL" style="visibility:hidden">
+            <button class="play-btn run" id="runBtnL"   title="Run">▶ Run</button>
+            <button class="play-btn"     id="pauseBtnL" title="Pause (Space)">⏸ Pause</button>
+            <button class="play-btn"     id="resetBtnL" title="Restart (R)">↺</button>
+          </div>
+          <div class="sep"></div>
+          <button class="fmt-btn" id="fmtBtnL" title="Format code (Alt+Shift+F)">⎇ Format</button>
+          <div class="mb-spacer"></div>
+          <button class="console-toggle" id="consoleToggleBtnL" title="Toggle console">▼ Console<span class="cn-badge" id="consoleBadgeL" style="display:none">0</span></button>
+        </div>
+        <div class="col-progress"><div class="col-progress-fill" id="progressLeft"></div></div>
+        <div class="editor-surface lang-surface" id="LsurfaceHtml" style="display:none">
+          <div class="line-gutter" id="LgutterHtml">1</div>
+          <div class="editor-inner">
+            <textarea class="code-ta" id="LtaHtml" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="&lt;!-- HTML goes here --&gt;"></textarea>
+            <pre class="hl-layer" id="LhlHtml" aria-hidden="true"><code class="language-markup"></code></pre>
+          </div>
+        </div>
+        <div class="editor-surface lang-surface" id="LsurfaceCss" style="display:none">
+          <div class="line-gutter" id="LgutterCss">1</div>
+          <div class="editor-inner">
+            <textarea class="code-ta" id="LtaCss" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="/* CSS goes here */"></textarea>
+            <pre class="hl-layer" id="LhlCss" aria-hidden="true"><code class="language-css"></code></pre>
+          </div>
+        </div>
+        <div class="editor-surface lang-surface" id="LsurfaceJs">
+          <div class="line-gutter" id="LgutterJs">1</div>
+          <div class="editor-inner">
+            <textarea class="code-ta" id="LtaJs" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="// JavaScript goes here"></textarea>
+            <pre class="hl-layer" id="LhlJs" aria-hidden="true"><code class="language-javascript"></code></pre>
+          </div>
+        </div>
+        <div class="output-surface" id="outLeft"></div>
+      </div><!-- /.panel-editor-pane -->
+
+      <!-- Internal horizontal resizer (visible in live-split) -->
+      <div class="panel-h-resizer" id="hResizerL"></div>
+
+      <!-- Live preview (right side of internal split) -->
+      <div class="live-preview" id="livePreviewL">
+        <div class="live-preview-toolbar">
+          <span>⚡ Live Preview</span>
+          <span class="preview-url">HTML + CSS + JS</span>
+          <button class="col-tab-btn" id="refreshBtnL" title="Refresh">↺</button>
+        </div>
+        <iframe id="previewFrameL" sandbox="allow-scripts allow-same-origin allow-popups" title="Live preview left"></iframe>
       </div>
-      <div class="panel-content left-content">
-        <div class="editor-wrapper">
-          <div class="line-numbers" id="lineNumbersLeft"></div>
-          <textarea class="code-editor" id="editor" placeholder="Write HTML, CSS, or JavaScript code here..."></textarea>
+
+      <!-- Console side-pane resizer (visible in console-split mode) -->
+      <div class="cn-side-resizer" id="cnSideResizerL"></div>
+
+      <!-- Console side-pane (visible in console-split mode) -->
+      <div class="cn-side-pane" id="cnSidePaneL">
+        <div class="cn-toolbar">
+          <span class="cn-title">Console</span>
+          <button class="cn-filter active" data-filter="all" data-side-filter="left">All</button>
+          <button class="cn-filter"        data-filter="log"   data-side-filter="left">Log</button>
+          <button class="cn-filter warn"   data-filter="warn"  data-side-filter="left">Warn</button>
+          <button class="cn-filter error"  data-filter="error" data-side-filter="left">Error</button>
+          <button class="cn-filter"        data-filter="info"  data-side-filter="left">Info</button>
+          <span class="cn-spacer"></span>
+          <button class="cn-action" id="cnSideClearBtnL">Clear</button>
+          <button class="cn-action" id="cnSideCloseBtnL" title="Close side console">✕</button>
+        </div>
+        <div class="console-list" id="cnSideListL">
+          <div class="cn-empty">No output yet. Run JS to see console messages.</div>
         </div>
       </div>
+
+    </div><!-- /.panel-live-wrap -->
+
+    <!-- Console drawer spans full width of the panel -->
+    <div class="console-drawer" id="consoleDrawerL">
+      <div class="cn-resizer" id="consoleResizerL"></div>
+      <div class="cn-toolbar">
+        <span class="cn-title">Console</span>
+        <button class="cn-filter active" data-filter="all">All</button>
+        <button class="cn-filter"        data-filter="log">Log</button>
+        <button class="cn-filter warn"   data-filter="warn">Warn</button>
+        <button class="cn-filter error"  data-filter="error">Error</button>
+        <button class="cn-filter"        data-filter="info">Info</button>
+        <span class="cn-spacer"></span>
+        <button class="cn-action" id="consoleClearBtnL">Clear</button>
+        <button class="cn-action" id="consoleSplitBtnL" title="Split console panel">⊞ Split</button>
+        <button class="cn-action" id="consoleCloseBtnL">✕</button>
+      </div>
+      <div class="console-list" id="consoleListL">
+        <div class="cn-empty">No output yet. Run JS to see console messages.</div>
+      </div>
     </div>
+  </div>
 
-    <div class="resizer" id="resizer"></div>
+  <!-- ─── RESIZER ──────────────────────────────────────────────────── -->
+  <div class="v-resizer" id="vResizer"></div>
 
-    <div class="split-panel right-panel">
-      <div class="panel-header">
-        <div class="panel-title">Right Panel</div>
-       <div class="panel-controls">
-  <button class="panel-btn active" data-panel="right" data-mode="edit" title="Edit Mode">✏️ Edit</button>
-  <button class="panel-btn" data-panel="right" data-mode="raw" title="Raw Code">📝 Raw</button>
-  <button class="panel-btn" data-panel="right" data-mode="render" title="Rendered">🎨 Render</button>
-  <button class="panel-pause-btn hidden-element" data-panel="right" title="Pause/Resume"><span class="pause-icon">⏸</span></button>
-  <button class="panel-reset-btn hidden-element" data-panel="right" title="Reset">↻</button>
-  <span class="panel-html-toggle status-indicator hidden-element" data-panel="right">HTML</span>
-  <span class="panel-js-toggle status-indicator hidden-element" data-panel="right">JS</span>
-  <span class="panel-css-toggle status-indicator hidden-element" data-panel="right">CSS</span>
+  <!-- ─── RIGHT PANEL ────────────────────────────────────────────── -->
+  <div class="editor-col" id="colRight">
+    <div class="panel-live-wrap" id="liveWrapR">
+
+      <!-- Editor pane (left side of internal split) -->
+      <div class="panel-editor-pane">
+        <div class="col-tabs">
+          <div class="col-tab"        id="RtabHtml" data-lang="html"><span class="lang-dot" style="background:var(--red)"></span>HTML</div>
+          <div class="col-tab"        id="RtabCss"  data-lang="css" ><span class="lang-dot" style="background:var(--blue)"></span>CSS</div>
+          <div class="col-tab active" id="RtabJs"   data-lang="js"  ><span class="lang-dot" style="background:var(--yellow)"></span>JS</div>
+          <div class="col-tabs-end">
+            <button class="col-tab-btn" id="lineNumBtnR" title="Toggle line numbers" style="font-family:var(--font-mono)">¶</button>
+            <button class="col-tab-btn" id="copyBtnR"    title="Copy">⎘</button>
+            <button class="col-tab-btn" id="clearBtnR"   title="Clear">✕</button>
+          </div>
+        </div>
+        <div class="panel-modebar">
+          <button class="mode-btn active" data-mode="edit" title="Edit mode">✏ Edit</button>
+          <button class="mode-btn"        data-mode="raw"  title="Typewriter">⌨ Raw</button>
+          <button class="mode-btn"        data-mode="live" title="Live preview">⚡ Live</button>
+          <div class="sep"></div>
+          <div class="play-wrap" id="playWrapR" style="visibility:hidden">
+            <button class="play-btn run" id="runBtnR"   title="Run">▶ Run</button>
+            <button class="play-btn"     id="pauseBtnR" title="Pause (Space)">⏸ Pause</button>
+            <button class="play-btn"     id="resetBtnR" title="Restart (R)">↺</button>
+          </div>
+          <div class="sep"></div>
+          <button class="fmt-btn" id="fmtBtnR" title="Format code (Alt+Shift+F)">⎇ Format</button>
+          <div class="mb-spacer"></div>
+          <button class="console-toggle" id="consoleToggleBtnR" title="Toggle console">▼ Console<span class="cn-badge" id="consoleBadgeR" style="display:none">0</span></button>
+        </div>
+        <div class="col-progress"><div class="col-progress-fill" id="progressRight"></div></div>
+        <div class="editor-surface lang-surface" id="RsurfaceHtml" style="display:none">
+          <div class="line-gutter" id="RgutterHtml">1</div>
+          <div class="editor-inner">
+            <textarea class="code-ta" id="RtaHtml" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="&lt;!-- HTML goes here --&gt;"></textarea>
+            <pre class="hl-layer" id="RhlHtml" aria-hidden="true"><code class="language-markup"></code></pre>
+          </div>
+        </div>
+        <div class="editor-surface lang-surface" id="RsurfaceCss" style="display:none">
+          <div class="line-gutter" id="RgutterCss">1</div>
+          <div class="editor-inner">
+            <textarea class="code-ta" id="RtaCss" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="/* CSS goes here */"></textarea>
+            <pre class="hl-layer" id="RhlCss" aria-hidden="true"><code class="language-css"></code></pre>
+          </div>
+        </div>
+        <div class="editor-surface lang-surface" id="RsurfaceJs">
+          <div class="line-gutter" id="RgutterJs">1</div>
+          <div class="editor-inner">
+            <textarea class="code-ta" id="RtaJs" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="// JavaScript goes here"></textarea>
+            <pre class="hl-layer" id="RhlJs" aria-hidden="true"><code class="language-javascript"></code></pre>
+          </div>
+        </div>
+        <div class="output-surface" id="outRight"></div>
+      </div><!-- /.panel-editor-pane -->
+
+      <!-- Internal horizontal resizer (visible in live-split) -->
+      <div class="panel-h-resizer" id="hResizerR"></div>
+
+      <!-- Live preview (right side of internal split) -->
+      <div class="live-preview" id="livePreviewR">
+        <div class="live-preview-toolbar">
+          <span>⚡ Live Preview</span>
+          <span class="preview-url">HTML + CSS + JS</span>
+          <button class="col-tab-btn" id="refreshBtnR" title="Refresh">↺</button>
+        </div>
+        <iframe id="previewFrameR" sandbox="allow-scripts allow-same-origin allow-popups" title="Live preview right"></iframe>
+      </div>
+
+      <!-- Console side-pane resizer (visible in console-split mode) -->
+      <div class="cn-side-resizer" id="cnSideResizerR"></div>
+
+      <!-- Console side-pane (visible in console-split mode) -->
+      <div class="cn-side-pane" id="cnSidePaneR">
+        <div class="cn-toolbar">
+          <span class="cn-title">Console</span>
+          <button class="cn-filter active" data-filter="all" data-side-filter="right">All</button>
+          <button class="cn-filter"        data-filter="log"   data-side-filter="right">Log</button>
+          <button class="cn-filter warn"   data-filter="warn"  data-side-filter="right">Warn</button>
+          <button class="cn-filter error"  data-filter="error" data-side-filter="right">Error</button>
+          <button class="cn-filter"        data-filter="info"  data-side-filter="right">Info</button>
+          <span class="cn-spacer"></span>
+          <button class="cn-action" id="cnSideClearBtnR">Clear</button>
+          <button class="cn-action" id="cnSideCloseBtnR" title="Close side console">✕</button>
+        </div>
+        <div class="console-list" id="cnSideListR">
+          <div class="cn-empty">No output yet. Run JS to see console messages.</div>
+        </div>
+      </div>
+
+    </div><!-- /.panel-live-wrap -->
+
+    <!-- Console drawer spans full width of the panel -->
+    <div class="console-drawer" id="consoleDrawerR">
+      <div class="cn-resizer" id="consoleResizerR"></div>
+      <div class="cn-toolbar">
+        <span class="cn-title">Console</span>
+        <button class="cn-filter active" data-filter="all">All</button>
+        <button class="cn-filter"        data-filter="log">Log</button>
+        <button class="cn-filter warn"   data-filter="warn">Warn</button>
+        <button class="cn-filter error"  data-filter="error">Error</button>
+        <button class="cn-filter"        data-filter="info">Info</button>
+        <span class="cn-spacer"></span>
+        <button class="cn-action" id="consoleClearBtnR">Clear</button>
+        <button class="cn-action" id="consoleSplitBtnR" title="Split console panel">⊞ Split</button>
+        <button class="cn-action" id="consoleCloseBtnR">✕</button>
+      </div>
+      <div class="console-list" id="consoleListR">
+        <div class="cn-empty">No output yet. Run JS to see console messages.</div>
+      </div>
+    </div>
+  </div>
+
 </div>
+
+<!-- ═══ STATUS BAR ═══════════════════════════════════════════════════ -->
+<div id="statusbar">
+  <span class="sb">📄 <span id="sbFileName">untitled.js</span></span>
+  <span class="sb-sep">│</span>
+  <span class="sb">Ln <span id="sbLn">1</span>, Col <span id="sbCol">1</span></span>
+  <div class="sb-r">
+    <span class="sb">Layout: <span class="sb-badge" id="sbLayout">SPLIT</span></span>
+    <span class="sb">Tutorial Code Editor</span>
+  </div>
+</div>
+
+<!-- ═══ SETTINGS MODAL ═══════════════════════════════════════════════ -->
+<div class="overlay" id="settingsOverlay">
+  <div class="modal">
+    <div class="modal-hd">
+      <span class="modal-title">⚙ Settings</span>
+      <button class="icon-btn" id="closeSettings" style="width:26px;height:26px;font-size:16px">✕</button>
+    </div>
+
+    <div class="stg-group">
+      <div class="stg-group-title">Editor</div>
+      <div class="stg-row">
+        <div class="stg-info">
+          <span class="stg-label">Line Numbers</span>
+          <span class="stg-desc">Show line number gutter</span>
+        </div>
+        <label class="toggle"><input type="checkbox" id="stgLines" checked /><span class="toggle-track"></span></label>
       </div>
-      <div class="panel-content right-content">
-        <div class="editor-wrapper">
-          <div class="line-numbers" id="lineNumbersRight"></div>
-          <textarea class="code-editor" id="editorRight" placeholder="Write HTML, CSS, or JavaScript code here..."></textarea>
+      <div class="stg-row">
+        <div class="stg-info">
+          <span class="stg-label">Font Size</span>
+          <span class="stg-desc">Code font size in pixels</span>
+        </div>
+        <input type="range" id="stgFontSize" min="11" max="22" value="13" step="1" />
+        <span class="stg-range-val" id="stgFontSizeVal">13px</span>
+      </div>
+      <div class="stg-row">
+        <div class="stg-info">
+          <span class="stg-label">Word Wrap</span>
+          <span class="stg-desc">Wrap long lines</span>
+        </div>
+        <label class="toggle"><input type="checkbox" id="stgWrap" checked /><span class="toggle-track"></span></label>
+      </div>
+    </div>
+
+    <div class="stg-group">
+      <div class="stg-group-title">Typewriter</div>
+      <div class="stg-row">
+        <div class="stg-info">
+          <span class="stg-label">Auto-Play on Mode Switch</span>
+          <span class="stg-desc">Start typewriter automatically</span>
+        </div>
+        <label class="toggle"><input type="checkbox" id="stgAutoPlay" checked /><span class="toggle-track"></span></label>
+      </div>
+      <div class="stg-row">
+        <div class="stg-info">
+          <span class="stg-label">Pause on Semicolon</span>
+          <span class="stg-desc">Brief pause after each JS statement</span>
+        </div>
+        <label class="toggle"><input type="checkbox" id="stgSemiPause" checked /><span class="toggle-track"></span></label>
+      </div>
+    </div>
+
+    <div class="stg-group">
+      <div class="stg-group-title">Keyboard Shortcuts</div>
+      <div class="stg-row">
+        <div style="display:flex;flex-wrap:wrap;gap:6px;font-size:11px;color:var(--txt1);line-height:2">
+          <span><kbd>Alt+Shift+F</kbd> Format code</span>
+          <span><kbd>Ctrl+\</kbd> Cycle layout</span>
+          <span><kbd>Ctrl+\`</kbd> Toggle console</span>
+          <span><kbd>Ctrl+Shift+T</kbd> Theme</span>
+          <span><kbd>Ctrl+,</kbd> Settings</span>
+          <span><kbd>Space</kbd> Pause/Resume</span>
+          <span><kbd>R</kbd> Restart typewriter</span>
+          <span><kbd>F11</kbd> Fullscreen</span>
+          <span><kbd>Tab</kbd> Indent</span>
         </div>
       </div>
     </div>
   </div>
+</div>
 
-  <div class="shortcut-hint" id="shortcutHint">
-    Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to run code
-  </div>
+<!-- Toast -->
+<div id="toast"></div>
 
-  <script src="app.js"></script>
+<script src="core/state.js"></script>
+<script src="core/dom.js"></script>
+<script src="core/editor.js"></script>
+<script src="core/typewriter.js"></script>
+<script src="core/panels.js"></script>
+<script src="core/live-preview.js"></script>
+<script src="core/console.js"></script>
+<script src="core/formatter.js"></script>
+<script src="core/ui.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
