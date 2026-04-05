@@ -14,6 +14,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
   <script src="https://unpkg.com/prettier@3.3.3/standalone.js"></script>
   <script src="https://unpkg.com/prettier@3.3.3/plugins/babel.js"></script>
   <script src="https://unpkg.com/prettier@3.3.3/plugins/html.js"></script>
@@ -1168,7 +1169,8 @@
     #sidebarHeader span { flex: 1; }
     #newFileBtn { margin-left: 4px; }
     #importBtn  { margin-left: 2px; }
-    #newFileBtn, #newFolderBtn, #importBtn {
+    #saveProjectBtn { margin-left: 2px; }
+    #newFileBtn, #newFolderBtn, #importBtn, #saveProjectBtn {
       width: 22px; height: 22px;
       border: none;
       background: transparent;
@@ -1181,7 +1183,7 @@
       transition: background var(--speed), color var(--speed);
       flex-shrink: 0;
     }
-    #newFileBtn:hover, #newFolderBtn:hover, #importBtn:hover { background: var(--bg3); color: var(--txt0); }
+    #newFileBtn:hover, #newFolderBtn:hover, #importBtn:hover, #saveProjectBtn:hover { background: var(--bg3); color: var(--txt0); }
 
     #sidebarFileList {
       flex: 1;
@@ -1519,6 +1521,7 @@
       <button id="newFileBtn"    title="New File">&#x1F4C4;</button>
       <button id="newFolderBtn"  title="New Folder">&#x1F4C1;</button>
       <button id="importBtn"     title="Import project folder">&#x23CF;</button>
+      <button id="saveProjectBtn" title="Save project to computer">&#x1F4BE;</button>
     </div>
     <!-- fallback file input for browsers without showDirectoryPicker -->
     <input type="file" id="importFolderInput" multiple webkitdirectory style="display:none" />

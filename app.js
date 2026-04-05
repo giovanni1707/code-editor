@@ -67,6 +67,7 @@ function init() {
   wireFind();
   wireExport();
   wireExportMenus();
+  wireSaveProject();
   wireColorScheme();
   wireToolbar();
   wireSettings();
