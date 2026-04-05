@@ -345,6 +345,7 @@
     .line-gutter {
       width: var(--gutter-w);
       min-width: var(--gutter-w);
+      height: 100%;
       background: var(--bg1);
       color: var(--txt2);
       font-family: var(--font-mono);
@@ -357,6 +358,8 @@
       overflow: hidden;
       white-space: pre;
       flex-shrink: 0;
+      align-self: stretch;
+      box-sizing: border-box;
     }
 
     .editor-inner {

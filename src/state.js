@@ -72,13 +72,13 @@ function saveSettings() {
 }
 
 /* ── Session persistence ─────────────────────────────────────── */
+const SESSION_VERSION = 2; // bump this to wipe old saved editor content
+
 function saveSession() {
   try {
     localStorage.setItem('ce:session', JSON.stringify({ v: SESSION_VERSION, ...state.session }));
   } catch (_) { /* ignore — quota exceeded etc */ }
 }
-
-const SESSION_VERSION = 2; // bump to clear old starter content
 
 function loadSession() {
   try {
