@@ -95,12 +95,33 @@ function wireSettings() {
   });
 }
 
+/* ── Brightness control ──────────────────────────────────────── */
+function applyBrightness(val) {
+  document.getElementById('main').style.filter =
+    val === 100 ? '' : `brightness(${val}%)`;
+}
+
 /* ── Toolbar buttons ─────────────────────────────────────────── */
 function wireToolbar() {
   el.speedRange.addEventListener('input', () => {
     state.settings.speed = +el.speedRange.value;
     el.speedNum.textContent = state.settings.speed;
     saveSettings();
+  });
+
+  const brightnessRange = document.getElementById('brightnessRange');
+  const brightnessNum   = document.getElementById('brightnessNum');
+  // Restore saved brightness
+  const savedBrightness = +(localStorage.getItem('ce:brightness') || 100);
+  brightnessRange.value    = savedBrightness;
+  brightnessNum.textContent = savedBrightness;
+  applyBrightness(savedBrightness);
+
+  brightnessRange.addEventListener('input', () => {
+    const val = +brightnessRange.value;
+    brightnessNum.textContent = val;
+    applyBrightness(val);
+    localStorage.setItem('ce:brightness', val);
   });
 
   el.layoutBtn.addEventListener('click', cycleLayout);
