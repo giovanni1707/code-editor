@@ -144,11 +144,15 @@ function copyActive(side) {
 }
 
 function clearActive(side) {
+  const lang = state.activeTab[side];
   const t = activeTab(side);
   t.ta.value = '';
-  refreshHL(t.ta, t.hl, state.activeTab[side]);
+  refreshHL(t.ta, t.hl, lang);
   updateGutter(t.ta, t.gutter);
   if (state.panelMode[side] === 'live') scheduleLivePreview(side);
+  // Persist the clear immediately so reload doesn't restore old content
+  state.session.editorContent[side][lang] = '';
+  saveSession();
 }
 
 function wirePanelActions(side) {
