@@ -23,17 +23,34 @@ const CONSOLE_BRIDGE = `<script>
   }
   /* Expose globally so user script catch blocks can call it */
   window.__ceLog = _send;
+  /* Patterns from third-party libraries that should not surface in the console */
+  var _ignore = [/\[Namespace Methods\]/i, /Invalid component or \$destroy/i];
+  function _filtered(level, args) {
+    var first = args && args[0];
+    if (typeof first === 'string') {
+      for (var i = 0; i < _ignore.length; i++) {
+        if (_ignore[i].test(first)) return;
+      }
+    }
+    _send(level, args);
+  }
   ['log','warn','error','info'].forEach(function(m) {
     var orig = console[m].bind(console);
-    console[m] = function() { orig.apply(console, arguments); _send(m, arguments); };
+    console[m] = function() { orig.apply(console, arguments); _filtered(m, arguments); };
   });
   var origClear = console.clear.bind(console);
   console.clear = function() { origClear(); try { _p.postMessage({ __source: 'ce-preview', side: _side, level: 'clear', args: [] }, '*'); } catch(e){} };
   var _jsOffset = __JS_LINE_OFFSET__;
   window.addEventListener('error', function(e) {
+    var msg = e.message || '';
+    /* Ignore opaque cross-origin errors from CDN scripts — the browser
+       masks them as "Script error." with no line info for security reasons.
+       Also ignore known third-party library internal warnings. */
+    if (!e.lineno && !e.colno && msg === 'Script error.') return true;
+    if (!e.filename || e.filename === '') return true; // no source = third-party
     var userLine = e.lineno ? Math.max(1, e.lineno - _jsOffset) : null;
     var loc = userLine ? 'line ' + userLine + (e.colno ? ', col ' + e.colno : '') : null;
-    _send('error', [e.message], loc);
+    _send('error', [msg], loc);
     return true; /* prevent default red error in page */
   });
   window.addEventListener('unhandledrejection', function(e) {

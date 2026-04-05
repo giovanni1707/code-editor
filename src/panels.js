@@ -222,14 +222,30 @@ function cycleLayout() {
 /* ════════════════════════════════════════════════════════════════
    DRAG RESIZERS
 ════════════════════════════════════════════════════════════════ */
+/* ── Drag shield — blocks iframes from stealing mouse events ── */
+let _shield = null;
+function _shieldOn(cursor) {
+  if (!_shield) {
+    _shield = document.createElement('div');
+    _shield.style.cssText =
+      'position:fixed;inset:0;z-index:9999;cursor:' + cursor;
+    document.body.appendChild(_shield);
+  } else {
+    _shield.style.cursor = cursor;
+  }
+}
+function _shieldOff() {
+  if (_shield) { _shield.remove(); _shield = null; }
+}
+
 function initResizer() {
   // ── Vertical resizer between left and right columns ──────────
   let vDragging = false;
   el.vResizer.addEventListener('mousedown', e => {
     vDragging = true;
     el.vResizer.classList.add('active');
-    document.body.style.cursor     = 'col-resize';
     document.body.style.userSelect = 'none';
+    _shieldOn('col-resize');
     e.preventDefault();
   });
   let _vPct = 50;
@@ -248,6 +264,7 @@ function initResizer() {
     vDragging = false;
     el.vResizer.classList.remove('active');
     document.body.style.cursor = document.body.style.userSelect = '';
+    _shieldOff();
     state.session.splitPct = _vPct;
     saveSession();
   });
@@ -263,22 +280,22 @@ function _initHResizer(side, resizer, wrap) {
 
   resizer.addEventListener('mousedown', e => {
     const editorPane = wrap.querySelector('.panel-editor-pane');
-    dragging     = true;
-    startX       = e.clientX;
+    dragging      = true;
+    startX        = e.clientX;
     startEditorW  = editorPane.getBoundingClientRect().width;
     startPreviewW = lp.getBoundingClientRect().width;
     resizer.classList.add('active');
-    document.body.style.cursor     = 'col-resize';
     document.body.style.userSelect = 'none';
+    _shieldOn('col-resize');
     e.preventDefault();
   });
 
   document.addEventListener('mousemove', e => {
     if (!dragging) return;
-    const delta     = e.clientX - startX;
-    const total     = startEditorW + startPreviewW;
-    let editorW     = Math.max(120, Math.min(total - 120, startEditorW + delta));
-    const previewW  = total - editorW;
+    const delta      = e.clientX - startX;
+    const total      = startEditorW + startPreviewW;
+    let editorW      = Math.max(120, Math.min(total - 120, startEditorW + delta));
+    const previewW   = total - editorW;
     const editorPane = wrap.querySelector('.panel-editor-pane');
     editorPane.style.flex = `0 0 ${editorW}px`;
     lp.style.flex         = `0 0 ${previewW}px`;
@@ -288,7 +305,8 @@ function _initHResizer(side, resizer, wrap) {
     if (!dragging) return;
     dragging = false;
     resizer.classList.remove('active');
-    document.body.style.cursor = document.body.style.userSelect = '';
+    document.body.style.userSelect = '';
+    _shieldOff();
     // Save the live preview pane width for this side
     const editorPane = wrap.querySelector('.panel-editor-pane');
     const w = editorPane.getBoundingClientRect().width;

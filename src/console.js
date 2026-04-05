@@ -264,8 +264,8 @@ function _wireOneSide(side) {
     dragging = true;
     startY = e.clientY;
     startH = refs.drawer.offsetHeight;
-    document.body.style.cursor     = 'ns-resize';
     document.body.style.userSelect = 'none';
+    _shieldOn('ns-resize');
     e.preventDefault();
   });
   document.addEventListener('mousemove', e => {
@@ -277,7 +277,8 @@ function _wireOneSide(side) {
   document.addEventListener('mouseup', () => {
     if (!dragging) return;
     dragging = false;
-    document.body.style.cursor = document.body.style.userSelect = '';
+    document.body.style.userSelect = '';
+    _shieldOff();
     const h = refs.drawer.offsetHeight;
     if (h > 0) { state.session.consoleHeight[side] = h; saveSession(); }
   });
@@ -288,8 +289,8 @@ function _wireOneSide(side) {
     sDragging = true;
     sStartX = e.clientX;
     sStartW = refs.sidePane.offsetWidth;
-    document.body.style.cursor     = 'col-resize';
     document.body.style.userSelect = 'none';
+    _shieldOn('col-resize');
     e.preventDefault();
   });
   document.addEventListener('mousemove', e => {
@@ -301,7 +302,8 @@ function _wireOneSide(side) {
   document.addEventListener('mouseup', () => {
     if (!sDragging) return;
     sDragging = false;
-    document.body.style.cursor = document.body.style.userSelect = '';
+    document.body.style.userSelect = '';
+    _shieldOff();
     const w = refs.sidePane.offsetWidth;
     if (w > 0) { state.session.consolePaneW[side] = w; saveSession(); }
   });
