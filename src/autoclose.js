@@ -1,7 +1,8 @@
 /**
  * core/autoclose.js
  * Auto-close brackets, quotes, and tags in code textareas.
- * Also handles: smart Enter inside {}, auto-indent, Backspace pair deletion.
+ * Also handles: smart Enter inside {}, auto-indent, Backspace pair deletion,
+ * and Emmet-like abbreviation expansion on Tab.
  */
 
 'use strict';
@@ -9,6 +10,134 @@
 const PAIRS = { '(': ')', '[': ']', '{': '}', '"': '"', "'": "'", '`': '`' };
 const CLOSERS = new Set(Object.values(PAIRS));
 const OPENERS = new Set(Object.keys(PAIRS));
+
+/* ── Emmet abbreviation table ────────────────────────────────── */
+const EMMET = {
+  // HTML boilerplate
+  '!': `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Document</title>
+</head>
+<body>
+  |
+</body>
+</html>`,
+
+  // Block elements
+  'div':     '<div>|</div>',
+  'section': '<section>|</section>',
+  'article': '<article>|</article>',
+  'main':    '<main>|</main>',
+  'header':  '<header>|</header>',
+  'footer':  '<footer>|</footer>',
+  'nav':     '<nav>|</nav>',
+  'aside':   '<aside>|</aside>',
+
+  // Text elements
+  'p':       '<p>|</p>',
+  'h1':      '<h1>|</h1>',
+  'h2':      '<h2>|</h2>',
+  'h3':      '<h3>|</h3>',
+  'h4':      '<h4>|</h4>',
+  'h5':      '<h5>|</h5>',
+  'h6':      '<h6>|</h6>',
+  'span':    '<span>|</span>',
+  'strong':  '<strong>|</strong>',
+  'em':      '<em>|</em>',
+  'small':   '<small>|</small>',
+  'blockquote': '<blockquote>|</blockquote>',
+  'pre':     '<pre>|</pre>',
+  'code':    '<code>|</code>',
+
+  // Links & media
+  'a':       '<a href="|"></a>',
+  'img':     '<img src="|" alt="" />',
+  'video':   '<video src="|" controls></video>',
+  'audio':   '<audio src="|" controls></audio>',
+  'iframe':  '<iframe src="|" frameborder="0"></iframe>',
+
+  // Lists
+  'ul':      '<ul>\n  <li>|</li>\n</ul>',
+  'ol':      '<ol>\n  <li>|</li>\n</ol>',
+  'li':      '<li>|</li>',
+  'dl':      '<dl>\n  <dt>|</dt>\n  <dd></dd>\n</dl>',
+
+  // Table
+  'table':   '<table>\n  <thead>\n    <tr>\n      <th>|</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <td></td>\n    </tr>\n  </tbody>\n</table>',
+  'tr':      '<tr>|</tr>',
+  'td':      '<td>|</td>',
+  'th':      '<th>|</th>',
+
+  // Form elements
+  'form':     '<form action="|" method="post">\n</form>',
+  'input':    '<input type="text" name="|" />',
+  'input:text':     '<input type="text" name="|" placeholder="" />',
+  'input:email':    '<input type="email" name="|" placeholder="" />',
+  'input:password': '<input type="password" name="|" />',
+  'input:number':   '<input type="number" name="|" />',
+  'input:checkbox': '<input type="checkbox" name="|" />',
+  'input:radio':    '<input type="radio" name="|" />',
+  'input:submit':   '<input type="submit" value="|" />',
+  'input:file':     '<input type="file" name="|" />',
+  'input:hidden':   '<input type="hidden" name="|" />',
+  'button':   '<button type="button">|</button>',
+  'btn':      '<button type="button">|</button>',
+  'textarea': '<textarea name="|" rows="4" cols="50"></textarea>',
+  'select':   '<select name="|">\n  <option value=""></option>\n</select>',
+  'label':    '<label for="|"></label>',
+
+  // Semantic / misc
+  'figure':   '<figure>\n  <img src="|" alt="" />\n  <figcaption></figcaption>\n</figure>',
+  'details':  '<details>\n  <summary>|</summary>\n</details>',
+  'dialog':   '<dialog id="|">\n</dialog>',
+  'template': '<template id="|">\n</template>',
+  'slot':     '<slot name="|"></slot>',
+  'link':     '<link rel="stylesheet" href="|" />',
+  'script':   '<script src="|"></script>',
+  'style':    '<style>\n  |\n</style>',
+  'meta':     '<meta name="|" content="" />',
+};
+
+/**
+ * Try to expand an Emmet abbreviation at the cursor.
+ * Returns true if expanded, false otherwise.
+ */
+function _tryEmmet(ta, lang) {
+  // Only expand in HTML tab
+  if (lang !== 'html') return false;
+
+  const s        = ta.selectionStart;
+  const val      = ta.value;
+  const lineStart = val.lastIndexOf('\n', s - 1) + 1;
+  const lineText  = val.slice(lineStart, s);
+  const abbr      = lineText.trim();
+
+  if (!abbr || !(abbr in EMMET)) return false;
+
+  const indent   = lineText.match(/^(\s*)/)[1];
+  let snippet    = EMMET[abbr];
+
+  // Indent multiline snippets to match current indentation
+  if (snippet.includes('\n')) {
+    snippet = snippet
+      .split('\n')
+      .map((line, i) => i === 0 ? line : indent + line)
+      .join('\n');
+  }
+
+  // Find cursor position marker '|' in snippet
+  const cursorPos = snippet.indexOf('|');
+  const clean     = snippet.replace('|', '');
+
+  // Replace the abbreviation on the current line with the snippet
+  ta.value = val.slice(0, lineStart) + indent + clean + val.slice(s);
+  const newCursor = lineStart + indent.length + (cursorPos === -1 ? clean.length : cursorPos);
+  ta.selectionStart = ta.selectionEnd = newCursor;
+  return true;
+}
 
 function _insert(ta, before, after, offset = before.length) {
   const s   = ta.selectionStart;
@@ -23,7 +152,7 @@ function _notifyChange(ta) {
   ta.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
-function wireAutoClose(ta) {
+function wireAutoClose(ta, lang) {
   ta.addEventListener('keydown', e => {
     const s      = ta.selectionStart;
     const end    = ta.selectionEnd;
@@ -31,6 +160,21 @@ function wireAutoClose(ta) {
     const charAt = val[s] || '';
     const before = val[s - 1] || '';
     const hasSelection = s !== end;
+
+    /* ── Tab: Emmet expansion ──────────────────────────────── */
+    if (e.key === 'Tab' && !hasSelection) {
+      if (_tryEmmet(ta, lang)) {
+        e.preventDefault();
+        _notifyChange(ta);
+        return;
+      }
+      // Default tab: insert 2 spaces
+      e.preventDefault();
+      ta.value = val.slice(0, s) + '  ' + val.slice(s);
+      ta.selectionStart = ta.selectionEnd = s + 2;
+      _notifyChange(ta);
+      return;
+    }
 
     /* ── Wrap selection in pair ────────────────────────────── */
     if (hasSelection && OPENERS.has(e.key)) {
@@ -114,8 +258,8 @@ function wireAutoClose(ta) {
 
 function wireAllAutoClose() {
   ['left', 'right'].forEach(side => {
-    Object.values(tabsFor(side)).forEach(t => {
-      if (t.ta) wireAutoClose(t.ta);
+    Object.entries(tabsFor(side)).forEach(([lang, t]) => {
+      if (t.ta) wireAutoClose(t.ta, lang);
     });
   });
 }
