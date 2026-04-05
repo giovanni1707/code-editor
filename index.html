@@ -1155,8 +1155,8 @@
       height: var(--tab-h);
       display: flex;
       align-items: center;
-      padding: 0 10px;
-      gap: 6px;
+      padding: 0 8px 0 10px;
+      gap: 2px;
       font-size: 10px;
       font-weight: 700;
       text-transform: uppercase;
@@ -1166,19 +1166,22 @@
       flex-shrink: 0;
     }
     #sidebarHeader span { flex: 1; }
-    #newFileBtn {
-      width: 20px; height: 20px;
+    #newFileBtn { margin-left: 4px; }
+    #importBtn  { margin-left: 2px; }
+    #newFileBtn, #newFolderBtn, #importBtn {
+      width: 22px; height: 22px;
       border: none;
       background: transparent;
       color: var(--txt1);
-      font-size: 18px;
+      font-size: 14px;
       line-height: 1;
       cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       border-radius: 3px;
       transition: background var(--speed), color var(--speed);
+      flex-shrink: 0;
     }
-    #newFileBtn:hover { background: var(--bg3); color: var(--txt0); }
+    #newFileBtn:hover, #newFolderBtn:hover, #importBtn:hover { background: var(--bg3); color: var(--txt0); }
 
     #sidebarFileList {
       flex: 1;
@@ -1190,14 +1193,15 @@
     .explorer-item {
       display: flex;
       align-items: center;
-      gap: 7px;
-      padding: 5px 10px 5px 12px;
+      gap: 6px;
+      padding: 5px 6px 5px 12px;
       font-size: 12px;
       cursor: pointer;
       color: var(--txt0);
       user-select: none;
       border-left: 2px solid transparent;
       transition: background var(--speed);
+      overflow: hidden;
     }
     .explorer-item:hover { background: var(--bg2); }
     .explorer-item.active-left  { border-left-color: var(--blue);  background: rgba(88,166,255,.07); }
@@ -1215,20 +1219,25 @@
 
     .file-actions {
       display: none;
+      align-items: center;
       gap: 2px;
       flex-shrink: 0;
+      margin-left: auto;
+      padding-left: 4px;
     }
     .explorer-item:hover .file-actions { display: flex; }
 
     .explorer-action-btn {
-      width: 18px; height: 18px;
+      width: 20px; height: 20px;
       border: none;
       background: transparent;
       color: var(--txt1);
-      font-size: 11px;
+      font-size: 12px;
+      line-height: 1;
       cursor: pointer;
       border-radius: 3px;
       display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
       transition: background var(--speed), color var(--speed);
     }
     .explorer-action-btn:hover { background: var(--bg3); color: var(--txt0); }
@@ -1244,6 +1253,65 @@
       padding: 1px 5px;
       outline: none;
       min-width: 0;
+    }
+
+    /* ─── Folder tree ────────────────────────────────────────────── */
+    .explorer-folder { font-weight: 500; }
+
+    .folder-arrow {
+      font-size: 8px;
+      color: var(--txt2);
+      width: 10px;
+      flex-shrink: 0;
+      display: inline-block;
+      text-align: center;
+      transition: color var(--speed);
+    }
+    .explorer-folder:hover .folder-arrow { color: var(--txt1); }
+
+    .folder-icon {
+      font-size: 13px;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
+    .explorer-empty {
+      padding: 14px 12px;
+      font-size: 11px;
+      color: var(--txt2);
+      line-height: 1.6;
+    }
+
+    /* ─── Context menu ───────────────────────────────────────────── */
+    .explorer-ctx-menu {
+      position: fixed;
+      z-index: 1000;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      box-shadow: 0 8px 24px rgba(0,0,0,.45);
+      min-width: 170px;
+      overflow: hidden;
+      padding: 3px 0;
+    }
+    .ctx-item {
+      display: block;
+      width: 100%;
+      padding: 6px 14px;
+      text-align: left;
+      background: none;
+      border: none;
+      color: var(--txt0);
+      font-family: var(--font-ui);
+      font-size: 12px;
+      cursor: pointer;
+      transition: background var(--speed);
+    }
+    .ctx-item:hover { background: var(--bg3); }
+    .ctx-sep {
+      height: 1px;
+      background: var(--border);
+      margin: 3px 0;
     }
 
     /* ─── Dynamic file tabs in panel tab bar ─────────────────────── */
@@ -1444,8 +1512,12 @@
   <div id="sidebar">
     <div id="sidebarHeader">
       <span>EXPLORER</span>
-      <button id="newFileBtn" title="New file">+</button>
+      <button id="newFileBtn"    title="New File">&#x1F4C4;</button>
+      <button id="newFolderBtn"  title="New Folder">&#x1F4C1;</button>
+      <button id="importBtn"     title="Import project folder">&#x23CF;</button>
     </div>
+    <!-- fallback file input for browsers without showDirectoryPicker -->
+    <input type="file" id="importFolderInput" multiple webkitdirectory style="display:none" />
     <div id="sidebarFileList"></div>
   </div>
   <div id="sidebarResizer"></div>

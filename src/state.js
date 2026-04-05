@@ -53,9 +53,10 @@ function mkTw() {
 
 /* ── Application state ───────────────────────────────────────── */
 const state = {
-  /* project: all files keyed by id */
+  /* project: files and folders keyed by id */
   project: {
-    files: {},   // { [id]: { id, name, content } }
+    files:   {},  // { [id]: { id, name, content, parentId } }
+    folders: {},  // { [id]: { id, name, parentId, collapsed } }
   },
 
   /* which files are open per panel, and which is active */
@@ -125,7 +126,9 @@ function saveProject() {
 function loadProject() {
   try {
     const p = JSON.parse(localStorage.getItem('ce:project') || 'null');
-    if (p && p.files) Object.assign(state.project.files, p.files);
+    if (!p) return;
+    if (p.files)   Object.assign(state.project.files,   p.files);
+    if (p.folders) Object.assign(state.project.folders, p.folders);
   } catch (_) {}
 }
 

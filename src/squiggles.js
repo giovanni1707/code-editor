@@ -185,10 +185,23 @@ function _drawSquiggle(ta, lineNum, message) {
 }
 
 /* ── Per-textarea wiring ─────────────────────────────────────── */
-function _wireOne(ta) {
+/* JS-only extensions that should get squiggle checking */
+const _JS_EXTS = new Set(['js','ts','jsx','tsx','mjs','cjs']);
+
+function _activeFileIsJs(side) {
+  const fid  = state.panelTabs[side].activeId;
+  const file = fid && state.project.files[fid];
+  if (!file) return false;
+  const ext = file.name.split('.').pop().toLowerCase();
+  return _JS_EXTS.has(ext);
+}
+
+function _wireOne(ta, side) {
   let _timer = null;
 
   function check() {
+    // Only lint real JS/TS files — not markdown, json, etc.
+    if (!_activeFileIsJs(side)) { _clearSquiggles(ta); return; }
     const err = _checkSyntax(ta.value);
     if (!err || !ta.value.trim()) {
       _clearSquiggles(ta);
@@ -199,12 +212,12 @@ function _wireOne(ta) {
 
   const schedule = () => {
     clearTimeout(_timer);
-    _timer = setTimeout(check, 600); // debounce: 600 ms after last keystroke
+    _timer = setTimeout(check, 600);
   };
 
   ta.addEventListener('input',  schedule);
   ta.addEventListener('scroll', () => {
-    // Re-draw squiggle position on scroll (no re-parse needed)
+    if (!_activeFileIsJs(side)) { _clearSquiggles(ta); return; }
     const err = _checkSyntax(ta.value);
     if (err && ta.value.trim()) _drawSquiggle(ta, err.line, err.message);
     else _clearSquiggles(ta);
@@ -218,6 +231,6 @@ function _wireOne(ta) {
 function wireSquiggles() {
   ['left', 'right'].forEach(side => {
     const t = tabsFor(side)['js'];
-    if (t && t.ta) _wireOne(t.ta);
+    if (t && t.ta) _wireOne(t.ta, side);
   });
 }

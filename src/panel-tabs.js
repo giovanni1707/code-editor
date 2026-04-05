@@ -61,6 +61,10 @@ function openFileInPanel(side, fileId) {
   const lang = extToLang(state.project.files[fileId].name);
   switchTab(side, lang);
 
+  // Clear squiggles whenever the active file changes (non-JS files must not show them)
+  const sqOverlay = tabsFor(side)['js'].surface?.querySelector('.sq-overlay');
+  if (sqOverlay) sqOverlay.innerHTML = '';
+
   // Rebuild the tab bar DOM
   renderTabBar(side);
 
