@@ -74,14 +74,20 @@ function saveSettings() {
 /* ── Session persistence ─────────────────────────────────────── */
 function saveSession() {
   try {
-    localStorage.setItem('ce:session', JSON.stringify(state.session));
+    localStorage.setItem('ce:session', JSON.stringify({ v: SESSION_VERSION, ...state.session }));
   } catch (_) { /* ignore — quota exceeded etc */ }
 }
+
+const SESSION_VERSION = 2; // bump to clear old starter content
 
 function loadSession() {
   try {
     const s = JSON.parse(localStorage.getItem('ce:session') || 'null');
     if (s) {
+      // If session is from before blank-slate change, wipe saved code
+      if ((s.v || 1) < SESSION_VERSION) {
+        s.editorContent = null;
+      }
       // Deep merge only known keys to avoid stale shape issues
       if (s.panelMode)     Object.assign(state.session.panelMode,     s.panelMode);
       if (s.activeTab)     Object.assign(state.session.activeTab,     s.activeTab);

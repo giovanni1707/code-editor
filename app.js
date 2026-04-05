@@ -11,79 +11,9 @@
 
 /* ── Starter content per tab ─────────────────────────────────── */
 const STARTER = {
-  left: {
-    html: `<div class="card">
-  <h1>Hello, World!</h1>
-  <p>Edit HTML here. Switch to <strong>CSS</strong> to style it,
-     <strong>JS</strong> to add behaviour.</p>
-  <button id="btn">Click me</button>
-</div>`,
-
-    css: `.card {
-  font-family: system-ui, sans-serif;
-  max-width: 480px;
-  margin: 40px auto;
-  padding: 28px 32px;
-  border-radius: 10px;
-  background: #1c2128;
-  color: #e6edf3;
-  box-shadow: 0 4px 24px rgba(0,0,0,.4);
-}
-
-h1 { color: #58a6ff; margin-bottom: 10px; }
-p  { color: #8b949e; line-height: 1.6; }
-
-button {
-  margin-top: 16px;
-  padding: 8px 20px;
-  background: #3fb950;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-}
-button:hover { opacity: .85; }`,
-
-    js: `const btn = document.getElementById('btn');
-let count = 0;
-
-btn.addEventListener('click', () => {
-  count++;
-  btn.textContent = \`Clicked \${count} time\${count === 1 ? '' : 's'}\`;
-  console.log('Clicked', count, 'times');
-});`,
-  },
-
-  right: {
-    html: `<!-- Right panel — HTML -->
-<div class="box">
-  <h2>Comparison Panel</h2>
-  <p>Use this panel independently — edit, typewrite, or live preview.</p>
-</div>`,
-
-    css: `/* Right panel — CSS */
-.box {
-  font-family: system-ui, sans-serif;
-  padding: 24px;
-  border: 2px solid #58a6ff;
-  border-radius: 8px;
-  color: #e6edf3;
-  max-width: 400px;
-  margin: 30px auto;
-}
-
-h2 { color: #58a6ff; }`,
-
-    js: `// Right panel — JavaScript
-// Each panel is fully independent:
-//   ✏  Edit  — free typing with syntax highlighting
-//   ⌨  Raw   — typewriter animates the code
-//   ⚡  Live  — live HTML/CSS/JS preview
-
-console.log('Right panel ready!');`,
-  },
-};
+  left:  { html: '', css: '', js: '' },
+  right: { html: '', css: '', js: '' },
+}; 
 
 /* ════════════════════════════════════════════════════════════════
    INIT
