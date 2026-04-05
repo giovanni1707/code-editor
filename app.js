@@ -64,7 +64,6 @@ function init() {
   wireSettings();
   wireKeyboard();
   wireAutoComplete();
-  wireColorPreview();
   wireSquiggles();
 
   // 6. Initial UI state

@@ -93,6 +93,12 @@ function wireSettings() {
     state.settings.semiPause = el.stgSemiPause.checked;
     saveSettings();
   });
+
+  document.getElementById('clearCacheBtn').addEventListener('click', () => {
+    if (!confirm('Clear all saved data and reload?')) return;
+    localStorage.clear();
+    location.reload();
+  });
 }
 
 /* ── Brightness control ──────────────────────────────────────── */

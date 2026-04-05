@@ -1170,27 +1170,6 @@
       font-family: var(--font-ui);
     }
 
-    /* ─── Color preview swatches ────────────────────────────────── */
-    .cp-overlay {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      overflow: hidden;
-      z-index: 3; /* above textarea (z:2) */
-    }
-    .cp-swatch {
-      position: absolute;
-      display: inline-block;
-      width: 10px;
-      height: 10px;
-      border-radius: 2px;
-      border: 1px solid rgba(255,255,255,.25);
-      background: var(--sw, transparent);
-      box-shadow: 0 0 0 1px rgba(0,0,0,.3);
-      transform: translateY(-1px);
-      pointer-events: none;
-      flex-shrink: 0;
-    }
 
     /* ─── Error squiggles ───────────────────────────────────────── */
     .sq-overlay {
@@ -1627,6 +1606,29 @@
     </div>
 
     <div class="stg-group">
+      <div class="stg-group-title">Data</div>
+      <div class="stg-row">
+        <div class="stg-info">
+          <span class="stg-label">Clear Cache</span>
+          <span class="stg-desc">Wipes all saved editor content and settings, then reloads</span>
+        </div>
+        <button id="clearCacheBtn" style="
+          padding: 5px 14px;
+          border: 1px solid var(--red);
+          border-radius: var(--r);
+          background: transparent;
+          color: var(--red);
+          font-family: var(--font-ui);
+          font-size: 12px;
+          font-weight: 500;
+          cursor: pointer;
+          flex-shrink: 0;
+          transition: background var(--speed), color var(--speed);
+        ">Clear</button>
+      </div>
+    </div>
+
+    <div class="stg-group">
       <div class="stg-group-title">Keyboard Shortcuts</div>
       <div class="stg-row">
         <div style="display:flex;flex-wrap:wrap;gap:6px;font-size:11px;color:var(--txt1);line-height:2">
@@ -1669,7 +1671,6 @@
 <script src="src/intel-utils.js"></script>
 <script src="src/snippets.js"></script>
 <script src="src/autocomplete.js"></script>
-<script src="src/color-preview.js"></script>
 <script src="src/squiggles.js"></script>
 <script src="app.js"></script>
 </body>
