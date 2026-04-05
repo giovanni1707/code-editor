@@ -161,9 +161,14 @@ function wireAutoClose(ta, lang) {
     const before = val[s - 1] || '';
     const hasSelection = s !== end;
 
-    /* ── Tab: Emmet expansion ──────────────────────────────── */
+    /* ── Tab: Emmet / JS snippet expansion ────────────────── */
     if (e.key === 'Tab' && !hasSelection) {
       if (_tryEmmet(ta, lang)) {
+        e.preventDefault();
+        _notifyChange(ta);
+        return;
+      }
+      if (lang === 'js' && tryJsSnippet(ta)) {
         e.preventDefault();
         _notifyChange(ta);
         return;

@@ -63,6 +63,9 @@ function init() {
   wireToolbar();
   wireSettings();
   wireKeyboard();
+  wireAutoComplete();
+  wireColorPreview();
+  wireSquiggles();
 
   // 6. Initial UI state
   el.speedRange.value     = state.settings.speed;

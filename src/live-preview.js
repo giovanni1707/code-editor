@@ -56,8 +56,11 @@ function buildLiveDoc(side) {
   const bridge = CONSOLE_BRIDGE.replace('__SIDE__', side);
 
   // If the HTML tab already contains a full document, inject CSS/JS into it
+  const CURSOR_RESET = `<style>a,button,[onclick],label,select,input[type="submit"],input[type="button"],input[type="reset"],input[type="checkbox"],input[type="radio"],input[type="range"],[role="button"],summary{cursor:pointer}</style>`;
+
   if (/<!DOCTYPE|<html/i.test(html)) {
     let doc = html;
+    doc = doc.replace('</head>', `${CURSOR_RESET}\n</head>`);
     if (css) doc = doc.replace('</head>', `<style>\n${css}\n</style>\n</head>`);
     // Calculate JS offset before inserting bridge (bridge goes into <head>)
     const headEnd   = doc.indexOf('<head>') + '<head>'.length + 1; // +1 for \n
@@ -103,6 +106,9 @@ try {
   ${finalBridge}
   <style>
     body { font-family: system-ui, sans-serif; padding: 16px; font-size: 14px; }
+    a, button, [onclick], label, select, input[type="submit"], input[type="button"],
+    input[type="reset"], input[type="checkbox"], input[type="radio"], input[type="range"],
+    [role="button"], summary { cursor: pointer; }
     ${css}
   </style>
 </head>
@@ -157,8 +163,20 @@ function scheduleConsoleRun(side) {
   _consoleDebounce[side] = setTimeout(() => runConsoleOnly(side), 400);
 }
 
-/* ── Wire the refresh buttons ────────────────────────────────── */
+/* ── Wire the refresh + popout buttons ───────────────────────── */
+function _popout(side) {
+  const doc = buildLiveDoc(side);
+  const blob = new Blob([doc], { type: 'text/html' });
+  const url  = URL.createObjectURL(blob);
+  const tab  = window.open(url, '_blank');
+  // Revoke the blob URL after the tab has had time to load it
+  if (tab) tab.addEventListener('load', () => URL.revokeObjectURL(url), { once: true });
+  else URL.revokeObjectURL(url); // blocked by popup blocker — clean up immediately
+}
+
 function wireLivePreview() {
   el.refreshBtnL.addEventListener('click', () => renderLivePreview('left'));
   el.refreshBtnR.addEventListener('click', () => renderLivePreview('right'));
+  el.popoutBtnL.addEventListener('click',  () => _popout('left'));
+  el.popoutBtnR.addEventListener('click',  () => _popout('right'));
 }
