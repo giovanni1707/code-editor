@@ -150,9 +150,12 @@ function clearActive(side) {
   refreshHL(t.ta, t.hl, lang);
   updateGutter(t.ta, t.gutter);
   if (state.panelMode[side] === 'live') scheduleLivePreview(side);
-  // Persist the clear immediately so reload doesn't restore old content
-  state.session.editorContent[side][lang] = '';
-  saveSession();
+  // Persist clear to project file
+  const fid = state.panelTabs[side].activeId;
+  if (fid && state.project.files[fid]) {
+    state.project.files[fid].content = '';
+    saveProject();
+  }
 }
 
 function wirePanelActions(side) {

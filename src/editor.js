@@ -111,7 +111,14 @@ function scheduleContentSave(side, lang, value) {
   const key = side + lang;
   clearTimeout(_saveDebounce[key]);
   _saveDebounce[key] = setTimeout(() => {
-    state.session.editorContent[side][lang] = value;
-    saveSession();
+    // Write to active project file
+    const fid = state.panelTabs[side].activeId;
+    if (fid && state.project.files[fid]) {
+      const fileLang = extToLang(state.project.files[fid].name);
+      if (fileLang === lang) {
+        state.project.files[fid].content = value;
+        saveProject();
+      }
+    }
   }, 600);
 }

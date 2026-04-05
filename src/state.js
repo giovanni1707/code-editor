@@ -12,6 +12,40 @@ const LANG_META = {
   js:   { prism: 'javascript', color: 'var(--yellow)', ext: 'js'   },
 };
 
+/* ── File extension → surface lang mapping ───────────────────── */
+const EXT_TO_LANG = {
+  html: 'html', htm: 'html', svg: 'html', xml: 'html',
+  css:  'css',  scss: 'css', less: 'css', sass: 'css',
+  js:   'js',   ts:   'js',  jsx:  'js',  tsx:  'js',
+  mjs:  'js',   cjs:  'js',  json: 'js',  md:   'js',
+  txt:  'js',
+};
+
+/* ── File extension → dot colour ─────────────────────────────── */
+const EXT_COLOR = {
+  html: 'var(--red)',    htm:  'var(--red)',
+  css:  'var(--blue)',   scss: 'var(--blue)',  less: 'var(--blue)',
+  js:   'var(--yellow)', ts:   'var(--blue)',  jsx:  'var(--yellow)',
+  tsx:  'var(--blue)',   json: 'var(--green)', md:   'var(--purple)',
+};
+
+/* ── Derive surface lang from a filename ─────────────────────── */
+function extToLang(filename) {
+  const ext = (filename.split('.').pop() || '').toLowerCase();
+  return EXT_TO_LANG[ext] || 'js';
+}
+
+/* ── Derive dot colour from a filename ───────────────────────── */
+function extColor(filename) {
+  const ext = (filename.split('.').pop() || '').toLowerCase();
+  return EXT_COLOR[ext] || 'var(--txt2)';
+}
+
+/* ── Generate a simple unique id ─────────────────────────────── */
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
 /* ── Typewriter state factory ────────────────────────────────── */
 function mkTw() {
   return { interval: null, index: 0, isPaused: false, isDone: false, segs: [], styles: '' };
@@ -19,6 +53,16 @@ function mkTw() {
 
 /* ── Application state ───────────────────────────────────────── */
 const state = {
+  /* project: all files keyed by id */
+  project: {
+    files: {},   // { [id]: { id, name, content } }
+  },
+
+  /* which files are open per panel, and which is active */
+  panelTabs: {
+    left:  { openIds: [], activeId: null },
+    right: { openIds: [], activeId: null },
+  },
   /* each panel has its own independent mode */
   panelMode: { left: 'edit', right: 'edit' },  // 'edit' | 'raw' | 'live'
 
@@ -71,8 +115,38 @@ function saveSettings() {
   localStorage.setItem('ce:settings', JSON.stringify(state.settings));
 }
 
+/* ── Project persistence ─────────────────────────────────────── */
+function saveProject() {
+  try {
+    localStorage.setItem('ce:project', JSON.stringify(state.project));
+  } catch (_) { toast && toast('Storage full — project not saved', 3000); }
+}
+
+function loadProject() {
+  try {
+    const p = JSON.parse(localStorage.getItem('ce:project') || 'null');
+    if (p && p.files) Object.assign(state.project.files, p.files);
+  } catch (_) {}
+}
+
+function savePanelTabs() {
+  try {
+    localStorage.setItem('ce:panelTabs', JSON.stringify(state.panelTabs));
+  } catch (_) {}
+}
+
+function loadPanelTabs() {
+  try {
+    const p = JSON.parse(localStorage.getItem('ce:panelTabs') || 'null');
+    if (!p) return;
+    ['left', 'right'].forEach(side => {
+      if (p[side]) Object.assign(state.panelTabs[side], p[side]);
+    });
+  } catch (_) {}
+}
+
 /* ── Session persistence ─────────────────────────────────────── */
-const SESSION_VERSION = 2; // bump this to wipe old saved editor content
+const SESSION_VERSION = 3; // bump this to wipe old saved editor content
 
 function saveSession() {
   try {
@@ -80,14 +154,45 @@ function saveSession() {
   } catch (_) { /* ignore — quota exceeded etc */ }
 }
 
+/* ── v2 → v3 migration ───────────────────────────────────────── */
+function _migrateEditorContent(ec) {
+  // Map old lang keys to default filenames
+  const nameMap = { html: 'index.html', css: 'style.css', js: 'main.js' };
+  // Collect unique content blocks (avoid duplicating if both panels had same content)
+  const seen = {};
+  ['left', 'right'].forEach(side => {
+    if (!ec[side]) return;
+    Object.entries(ec[side]).forEach(([lang, content]) => {
+      if (!content) return;
+      const name = nameMap[lang];
+      if (seen[name]) {
+        // Already created from the other panel — just open it there too
+        const id = seen[name];
+        if (!state.panelTabs[side].openIds.includes(id)) {
+          state.panelTabs[side].openIds.push(id);
+          if (!state.panelTabs[side].activeId) state.panelTabs[side].activeId = id;
+        }
+      } else {
+        const id = uid();
+        state.project.files[id] = { id, name, content };
+        seen[name] = id;
+        state.panelTabs[side].openIds.push(id);
+        if (!state.panelTabs[side].activeId) state.panelTabs[side].activeId = id;
+      }
+    });
+  });
+}
+
 function loadSession() {
   try {
     const s = JSON.parse(localStorage.getItem('ce:session') || 'null');
     if (s) {
-      // If session is from before blank-slate change, wipe saved code
-      if ((s.v || 1) < SESSION_VERSION) {
+      // v2 → v3: migrate old editorContent into project files
+      if ((s.v || 1) < SESSION_VERSION && s.editorContent) {
+        _migrateEditorContent(s.editorContent);
         s.editorContent = null;
       }
+      if ((s.v || 1) < SESSION_VERSION) s.editorContent = null;
       // Deep merge only known keys to avoid stale shape issues
       if (s.panelMode)     Object.assign(state.session.panelMode,     s.panelMode);
       if (s.activeTab)     Object.assign(state.session.activeTab,     s.activeTab);

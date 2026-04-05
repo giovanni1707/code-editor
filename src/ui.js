@@ -157,6 +157,9 @@ function wireKeyboard() {
       return;
     }
 
+    // Toggle sidebar (Ctrl+B)
+    if (ctrl && e.key === 'b') { e.preventDefault(); toggleSidebar(); return; }
+
     // Layout cycling
     if (ctrl && e.key === '\\') { e.preventDefault(); cycleLayout(); return; }
 

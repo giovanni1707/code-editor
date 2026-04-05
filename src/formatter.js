@@ -6,7 +6,11 @@
 
 'use strict';
 
-const PRETTIER_PARSER = { js: 'babel', css: 'css', html: 'html' };
+const PRETTIER_PARSER = {
+  js: 'babel', ts: 'babel', jsx: 'babel', tsx: 'babel', mjs: 'babel',
+  css: 'css', scss: 'css', less: 'css',
+  html: 'html', htm: 'html',
+};
 
 async function formatActive(side) {
   if (typeof prettier === 'undefined') {
@@ -14,12 +18,17 @@ async function formatActive(side) {
     return;
   }
 
+  // Determine parser from active file name if available
+  const fid    = state.panelTabs[side].activeId;
+  const file   = fid && state.project.files[fid];
+  const ext    = file ? file.name.split('.').pop().toLowerCase() : state.activeTab[side];
   const lang   = state.activeTab[side];
   const t      = activeTab(side);
+  const parser = PRETTIER_PARSER[ext] || PRETTIER_PARSER[lang];
   const code   = t.ta.value;
   if (!code.trim()) return;
 
-  const parser  = PRETTIER_PARSER[lang];
+  if (!parser) { toast('No formatter for this file type'); return; }
   // Prettier 3.x standalone exposes plugins on window.prettierPlugins
   const plugins = [
     window.prettierPlugins?.babel,

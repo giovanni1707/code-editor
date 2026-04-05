@@ -1128,6 +1128,176 @@
       flex-shrink: 0;
     }
 
+    /* ─── File Explorer Sidebar ─────────────────────────────────── */
+    #sidebar {
+      width: 220px;
+      min-width: 140px;
+      background: var(--bg1);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      overflow: hidden;
+      transition: width .15s;
+    }
+    #sidebar.hidden { display: none; }
+
+    #sidebarResizer {
+      width: 4px;
+      background: var(--border);
+      cursor: col-resize;
+      flex-shrink: 0;
+      transition: background var(--speed);
+    }
+    #sidebarResizer:hover { background: var(--blue); }
+
+    #sidebarHeader {
+      height: var(--tab-h);
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      gap: 6px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--txt1);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    #sidebarHeader span { flex: 1; }
+    #newFileBtn {
+      width: 20px; height: 20px;
+      border: none;
+      background: transparent;
+      color: var(--txt1);
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 3px;
+      transition: background var(--speed), color var(--speed);
+    }
+    #newFileBtn:hover { background: var(--bg3); color: var(--txt0); }
+
+    #sidebarFileList {
+      flex: 1;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .explorer-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 10px 5px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      color: var(--txt0);
+      user-select: none;
+      border-left: 2px solid transparent;
+      transition: background var(--speed);
+    }
+    .explorer-item:hover { background: var(--bg2); }
+    .explorer-item.active-left  { border-left-color: var(--blue);  background: rgba(88,166,255,.07); }
+    .explorer-item.active-right { border-left-color: var(--green); background: rgba(63,185,80,.07); }
+    .explorer-item.active-left.active-right { border-left-color: var(--purple); }
+
+    .file-name {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-family: var(--font-mono);
+    }
+
+    .file-actions {
+      display: none;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+    .explorer-item:hover .file-actions { display: flex; }
+
+    .explorer-action-btn {
+      width: 18px; height: 18px;
+      border: none;
+      background: transparent;
+      color: var(--txt1);
+      font-size: 11px;
+      cursor: pointer;
+      border-radius: 3px;
+      display: flex; align-items: center; justify-content: center;
+      transition: background var(--speed), color var(--speed);
+    }
+    .explorer-action-btn:hover { background: var(--bg3); color: var(--txt0); }
+
+    .rename-input {
+      flex: 1;
+      background: var(--bg0);
+      border: 1px solid var(--blue);
+      border-radius: 3px;
+      color: var(--txt0);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      padding: 1px 5px;
+      outline: none;
+      min-width: 0;
+    }
+
+    /* ─── Dynamic file tabs in panel tab bar ─────────────────────── */
+    /* Hide the old static lang tabs — surfaces stay in DOM */
+    .col-tab[data-lang] { display: none; }
+
+    .file-tab {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 0 10px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--txt1);
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      user-select: none;
+      transition: color var(--speed), border-color var(--speed);
+      font-family: var(--font-mono);
+    }
+    .file-tab:hover { color: var(--txt0); }
+    .file-tab.active { color: var(--txt0); border-bottom-color: var(--blue); }
+
+    .file-tab-label { max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+
+    .tab-x {
+      font-size: 14px;
+      opacity: 0;
+      line-height: 1;
+      border-radius: 3px;
+      width: 14px;
+      text-align: center;
+      flex-shrink: 0;
+      transition: opacity var(--speed), color var(--speed);
+    }
+    .file-tab:hover .tab-x,
+    .file-tab.active .tab-x { opacity: 0.5; }
+    .file-tab .tab-x:hover   { opacity: 1 !important; color: var(--red); }
+
+    /* ─── Empty panel state ──────────────────────────────────────── */
+    .panel-empty {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 6px;
+      color: var(--txt2);
+      font-size: 13px;
+      pointer-events: none;
+    }
+
     /* ─── Utility ────────────────────────────────────────────────── */
     .hidden { display: none !important; }
 
@@ -1200,6 +1370,8 @@
     Code Editor
   </div>
 
+  <button class="icon-btn on" id="sidebarToggleBtn" title="Toggle explorer (Ctrl+B)">⊞</button>
+
   <div class="tb-sep"></div>
 
   <!-- Typewriter speed -->
@@ -1267,6 +1439,16 @@
 
 <!-- ═══ MAIN ═════════════════════════════════════════════════════════ -->
 <div id="main">
+
+  <!-- ─── FILE EXPLORER SIDEBAR ────────────────────────────────── -->
+  <div id="sidebar">
+    <div id="sidebarHeader">
+      <span>EXPLORER</span>
+      <button id="newFileBtn" title="New file">+</button>
+    </div>
+    <div id="sidebarFileList"></div>
+  </div>
+  <div id="sidebarResizer"></div>
 
   <!-- ─── LEFT PANEL ─────────────────────────────────────────────── -->
   <div class="editor-col" id="colLeft">
@@ -1668,6 +1850,9 @@
 <script src="src/find.js"></script>
 <script src="src/export.js"></script>
 <script src="src/ui.js"></script>
+<script src="src/files.js"></script>
+<script src="src/panel-tabs.js"></script>
+<script src="src/explorer.js"></script>
 <script src="src/intel-utils.js"></script>
 <script src="src/snippets.js"></script>
 <script src="src/autocomplete.js"></script>

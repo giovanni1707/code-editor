@@ -1,19 +1,8 @@
 /**
  * app.js — Entry point.
- * Loads after all core/*.js scripts. Calls init() to boot the editor.
- *
- * Load order in editor.html:
- *   core/state.js → core/dom.js → core/editor.js → core/typewriter.js
- *   → core/panels.js → core/live-preview.js → core/console.js → core/ui.js → app.js
  */
 
 'use strict';
-
-/* ── Starter content per tab ─────────────────────────────────── */
-const STARTER = {
-  left:  { html: '', css: '', js: '' },
-  right: { html: '', css: '', js: '' },
-}; 
 
 /* ════════════════════════════════════════════════════════════════
    INIT
@@ -22,9 +11,11 @@ function init() {
   // 1. Build DOM ref maps
   buildTabRefs();
 
-  // 2. Load persisted settings + session
-  const isFirstVisit = !localStorage.getItem('ce:session');
+  // 2. Load persisted data
+  const isFirstVisit = !localStorage.getItem('ce:project');
   loadSettings();
+  loadProject();
+  loadPanelTabs();
   loadSession();
 
   // 3. Apply visual settings
@@ -32,19 +23,36 @@ function init() {
   applyFontSize(state.settings.fontSize);
   applyWrap();
 
-  // 4. Seed content — use saved content if available, else starter
-  const sess = state.session;
-  Object.entries(STARTER).forEach(([side, langs]) => {
-    const tabs    = tabsFor(side);
-    const saved   = sess.editorContent[side];
-    Object.entries(langs).forEach(([lang, starterCode]) => {
-      tabs[lang].ta.value = (saved[lang] !== null && saved[lang] !== undefined)
-        ? saved[lang]
-        : starterCode;
-    });
+  // 4. If brand-new install (no project), create default starter files
+  if (isFirstVisit || !Object.keys(state.project.files).length) {
+    _seedDefaultProject();
+  }
+
+  // 5. Validate open file IDs (files may have been deleted)
+  ['left', 'right'].forEach(side => {
+    const pt = state.panelTabs[side];
+    pt.openIds = pt.openIds.filter(id => state.project.files[id]);
+    if (pt.activeId && !state.project.files[pt.activeId]) {
+      pt.activeId = pt.openIds[pt.openIds.length - 1] || null;
+    }
+    // If nothing is open, open the first file
+    if (!pt.activeId && Object.keys(state.project.files).length) {
+      const first = getFilesSorted()[0];
+      if (first) { pt.openIds = [first.id]; pt.activeId = first.id; }
+    }
   });
 
-  // 5. Wire all events
+  // 6. Load each panel's active file into its physical surface
+  ['left', 'right'].forEach(side => {
+    const pt = state.panelTabs[side];
+    if (pt.activeId && state.project.files[pt.activeId]) {
+      const file = state.project.files[pt.activeId];
+      const lang = extToLang(file.name);
+      tabsFor(side)[lang].ta.value = file.content || '';
+    }
+  });
+
+  // 7. Wire all events
   wireAllTextareas();
   wireAllAutoClose();
   wireTabButtons('left');
@@ -65,8 +73,9 @@ function init() {
   wireKeyboard();
   wireAutoComplete();
   wireSquiggles();
+  wireExplorer();
 
-  // 6. Initial UI state
+  // 8. Initial UI state
   el.speedRange.value     = state.settings.speed;
   el.speedNum.textContent = state.settings.speed;
   el.lineNumBtnL.classList.toggle('active', state.settings.lineNums);
@@ -74,48 +83,56 @@ function init() {
   setPlaybackVisible('left',  false);
   setPlaybackVisible('right', false);
 
-  // 7. Restore tabs & modes from session
-  switchTab('left',  sess.activeTab.left);
-  switchTab('right', sess.activeTab.right);
+  // 9. Render file explorer + dynamic tab bars
+  renderExplorer();
+  ['left', 'right'].forEach(side => {
+    const pt = state.panelTabs[side];
+    if (pt.activeId && state.project.files[pt.activeId]) {
+      const lang = extToLang(state.project.files[pt.activeId].name);
+      switchTab(side, lang);
+    }
+    renderTabBar(side);
+  });
+
+  // 10. Restore panel modes from session
+  const sess = state.session;
   setPanelMode('left',  sess.panelMode.left);
   setPanelMode('right', sess.panelMode.right);
 
-  // 8. Restore layout
+  // 11. Restore layout
   applyLayout(sess.layout);
 
-  // 9. Resizer (must come before restoring split position)
+  // 12. Resizer
   initResizer();
 
-  // 10. Restore vertical split position
+  // 13. Restore vertical split position
   if (sess.layout === 'split' && sess.splitPct !== 50) {
     const pct = sess.splitPct;
     el.colLeft.style.flex  = `0 0 ${pct}%`;
     el.colRight.style.flex = `0 0 ${100 - pct}%`;
   }
 
-  // 11. Restore live h-resizer (preview pane widths)
+  // 14. Restore live h-resizer (preview pane widths)
   ['left', 'right'].forEach(side => {
     const w = sess.livePaneW[side];
     if (!w) return;
-    const wrap = side === 'left' ? el.liveWrapL : el.liveWrapR;
+    const wrap       = side === 'left' ? el.liveWrapL : el.liveWrapR;
     const editorPane = wrap.querySelector('.panel-editor-pane');
-    const lp = side === 'left' ? el.livePreviewL : el.livePreviewR;
-    const total = wrap.getBoundingClientRect().width;
+    const lp         = side === 'left' ? el.livePreviewL : el.livePreviewR;
+    const total      = wrap.getBoundingClientRect().width;
     if (total > 0) {
       editorPane.style.flex = `0 0 ${w}px`;
       lp.style.flex         = `0 0 ${total - w}px`;
     }
   });
 
-  // 12. Restore console state
+  // 15. Restore console state
   ['left', 'right'].forEach(side => {
     const refs = side === 'left' ? {
       drawer: el.consoleDrawerL, sidePane: el.cnSidePaneL,
-      col: el.colLeft, splitBtn: el.consoleSplitBtnL,
       toggleBtn: el.consoleToggleBtnL,
     } : {
       drawer: el.consoleDrawerR, sidePane: el.cnSidePaneR,
-      col: el.colRight, splitBtn: el.consoleSplitBtnR,
       toggleBtn: el.consoleToggleBtnR,
     };
 
@@ -128,7 +145,6 @@ function init() {
     }
 
     if (sess.consoleSplit[side]) {
-      // Restore split pane mode
       setConsoleSplit(side, true);
     } else if (sess.consoleOpen[side]) {
       refs.drawer.classList.add('open');
@@ -137,19 +153,49 @@ function init() {
     }
   });
 
-  // 13. Highlight & gutter all tabs
+  // 16. Highlight & gutter all tabs
   refreshAllHL();
   updateAllGutters();
 
-  // 14. Status bar
-  const activeLSide = sess.activeTab.left;
-  updateStatus(tabsFor('left')[activeLSide].ta);
+  // 17. Status bar
+  ['left', 'right'].forEach(side => {
+    const fid  = state.panelTabs[side].activeId;
+    const file = fid && state.project.files[fid];
+    if (file && side === 'left') el.sbFileName.textContent = file.name;
+    const lang = state.activeTab[side];
+    updateStatus(tabsFor(side)[lang].ta);
+  });
+
+  // 18. Save panel tabs so open state is persisted
+  savePanelTabs();
 
   if (isFirstVisit) {
-    toast('Ready — each panel has its own Edit / Raw / Live modes', 3000);
+    toast('Welcome! Create files with + in the explorer', 3500);
   } else {
     toast('Session restored', 2000);
   }
+}
+
+/* ── Seed default files for first-time users ─────────────────── */
+function _seedDefaultProject() {
+  const htmlId = uid();
+  const cssId  = uid();
+  const jsId   = uid();
+
+  state.project.files[htmlId] = { id: htmlId, name: 'index.html', content: '' };
+  state.project.files[cssId]  = { id: cssId,  name: 'style.css',  content: '' };
+  state.project.files[jsId]   = { id: jsId,   name: 'main.js',    content: '' };
+
+  // Left panel opens index.html by default
+  state.panelTabs.left.openIds  = [htmlId];
+  state.panelTabs.left.activeId = htmlId;
+
+  // Right panel opens main.js by default
+  state.panelTabs.right.openIds  = [jsId];
+  state.panelTabs.right.activeId = jsId;
+
+  saveProject();
+  savePanelTabs();
 }
 
 init();

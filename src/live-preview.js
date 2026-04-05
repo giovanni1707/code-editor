@@ -65,11 +65,34 @@ function _countLines(str) {
   return n;
 }
 
+/* ── Gather HTML/CSS/JS from open project files ──────────────── */
+function _getPreviewSources(side) {
+  // Flush current textarea content to the active file first
+  if (typeof flushAllPanels === 'function') flushAllPanels();
+
+  const openIds = state.panelTabs[side].openIds;
+  const files   = openIds.map(id => state.project.files[id]).filter(Boolean);
+
+  const find = exts => {
+    const f = files.find(f => {
+      const ext = f.name.split('.').pop().toLowerCase();
+      return exts.includes(ext);
+    });
+    return f ? f.content : '';
+  };
+
+  return {
+    html: find(['html', 'htm']),
+    css:  find(['css', 'scss', 'less']),
+    js:   find(['js', 'ts', 'mjs', 'jsx', 'tsx']),
+  };
+}
+
 function buildLiveDoc(side) {
-  const tabs = tabsFor(side);
-  const html = tabs.html.ta.value;
-  const css  = tabs.css.ta.value;
-  const js   = tabs.js.ta.value;
+  const src  = _getPreviewSources(side);
+  const html = src.html || tabsFor(side).html.ta.value;
+  const css  = src.css  || tabsFor(side).css.ta.value;
+  const js   = src.js   || tabsFor(side).js.ta.value;
   const bridge = CONSOLE_BRIDGE.replace('__SIDE__', side);
 
   // If the HTML tab already contains a full document, inject CSS/JS into it
