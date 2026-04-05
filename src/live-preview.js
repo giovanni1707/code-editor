@@ -65,6 +65,122 @@ function _countLines(str) {
   return n;
 }
 
+/* ── Build virtual path for a project file (folder chain/name) ── */
+function _virtualPath(file) {
+  const parts = [file.name];
+  let parentId = file.parentId;
+  while (parentId) {
+    const folder = state.project.folders[parentId];
+    if (!folder) break;
+    parts.unshift(folder.name);
+    parentId = folder.parentId;
+  }
+  return parts.join('/');
+}
+
+/* ── Pre-build a lookup map: every suffix → file ─────────────── */
+function _buildPathIndex() {
+  const index = new Map(); // suffix → file (longest suffix wins)
+  Object.values(state.project.files).forEach(file => {
+    const vp = _virtualPath(file);
+    // Index every suffix: "css/main.css", "main.css"
+    const parts = vp.split('/');
+    for (let i = 0; i < parts.length; i++) {
+      const suffix = parts.slice(i).join('/');
+      if (!index.has(suffix)) index.set(suffix, file);
+    }
+  });
+  return index;
+}
+
+/* ── Strip query string and hash from a URL path ─────────────── */
+function _stripQuery(path) {
+  return path.replace(/[?#].*$/, '');
+}
+
+/* ── Resolve a relative ref against the HTML file's virtual path  */
+function _resolvePath(htmlVirtualPath, ref) {
+  const baseDir = htmlVirtualPath.includes('/')
+    ? htmlVirtualPath.slice(0, htmlVirtualPath.lastIndexOf('/') + 1)
+    : '';
+  const combined = baseDir + ref;
+  const parts = combined.split('/');
+  const out = [];
+  for (const p of parts) {
+    if (p === '..') out.pop();
+    else if (p !== '.') out.push(p);
+  }
+  return out.join('/');
+}
+
+/* ── Find a project file for a given href/src value ──────────── */
+function _findProjectFile(ref, htmlVirtualPath, index) {
+  // Skip external URLs
+  if (/^https?:\/\//i.test(ref) || ref.startsWith('//') || ref.startsWith('data:')) return null;
+
+  const clean = _stripQuery(ref);
+
+  // Try fully resolved path first, then the raw cleaned ref
+  const candidates = [
+    _resolvePath(htmlVirtualPath, clean),
+    clean,
+    // Also try stripping the first path segment (project root folder name)
+    clean.includes('/') ? clean.slice(clean.indexOf('/') + 1) : null,
+  ].filter(Boolean);
+
+  for (const candidate of candidates) {
+    // Exact match
+    if (index.has(candidate)) return index.get(candidate);
+    // Strip leading path segments one by one
+    const parts = candidate.split('/');
+    for (let i = 1; i < parts.length; i++) {
+      const suffix = parts.slice(i).join('/');
+      if (index.has(suffix)) return index.get(suffix);
+    }
+  }
+  return null;
+}
+
+/* ── Inline all resolvable <link> and <script src> in HTML ───── */
+function _inlineAssets(html, htmlVirtualPath) {
+  const index = _buildPathIndex();
+
+  // <link rel="stylesheet" href="...">  →  <style>...</style>
+  html = html.replace(
+    /<link\b([^>]*)>/gi,
+    (match, attrs) => {
+      if (!/rel=["']stylesheet["']/i.test(attrs)) return match;
+      const m = attrs.match(/\bhref=["']([^"']+)["']/i);
+      if (!m) return match;
+      const file = _findProjectFile(m[1], htmlVirtualPath, index);
+      if (!file) return match;
+      return `<style>/* inlined: ${m[1]} */\n${file.content || ''}\n</style>`;
+    }
+  );
+
+  // <script src="...">...</script>  →  <script>...</script>
+  // Use a two-pass approach: first find all opening <script> tags with src,
+  // then replace the full tag including its closing </script>
+  html = html.replace(
+    /<script\b([^>]*\bsrc=["'][^"']+["'][^>]*)>([\s\S]*?)<\/script>/gi,
+    (match, attrs, inner) => {
+      const m = attrs.match(/\bsrc=["']([^"']+)["']/i);
+      if (!m) return match;
+      const file = _findProjectFile(m[1], htmlVirtualPath, index);
+      if (!file) return match;
+      // Drop src attribute, keep others (e.g. defer, async — but not type="module"
+      // since inlined scripts can't be modules)
+      const otherAttrs = attrs
+        .replace(/\bsrc=["'][^"']+["']/i, '')
+        .replace(/\btype=["']module["']/i, '')
+        .trim();
+      return `<script${otherAttrs ? ' ' + otherAttrs : ''}>/* inlined: ${m[1]} */\n${file.content || ''}\n\x3C/script>`;
+    }
+  );
+
+  return html;
+}
+
 /* ── Gather HTML/CSS/JS from open project files ──────────────── */
 function _getPreviewSources(side) {
   // Flush current textarea content to the active file first
@@ -81,34 +197,39 @@ function _getPreviewSources(side) {
     return f ? f.content : '';
   };
 
+  const htmlFile = files.find(f => ['html','htm'].includes(f.name.split('.').pop().toLowerCase()));
+
   return {
-    html: find(['html', 'htm']),
-    css:  find(['css', 'scss', 'less']),
-    js:   find(['js', 'ts', 'mjs', 'jsx', 'tsx']),
+    html:     find(['html', 'htm']),
+    css:      find(['css', 'scss', 'less']),
+    js:       find(['js', 'ts', 'mjs', 'jsx', 'tsx']),
+    htmlVirtualPath: htmlFile ? _virtualPath(htmlFile) : 'index.html',
   };
 }
 
 function buildLiveDoc(side) {
   const src  = _getPreviewSources(side);
-  const html = src.html || tabsFor(side).html.ta.value;
+  let   html = src.html || tabsFor(side).html.ta.value;
   const css  = src.css  || tabsFor(side).css.ta.value;
   const js   = src.js   || tabsFor(side).js.ta.value;
   const bridge = CONSOLE_BRIDGE.replace('__SIDE__', side);
 
-  // If the HTML tab already contains a full document, inject CSS/JS into it
   const CURSOR_RESET = `<style>a,button,[onclick],label,select,input[type="submit"],input[type="button"],input[type="reset"],input[type="checkbox"],input[type="radio"],input[type="range"],[role="button"],summary{cursor:pointer}</style>`;
 
+  // If the HTML tab already contains a full document, inline referenced assets first
   if (/<!DOCTYPE|<html/i.test(html)) {
-    let doc = html;
+    let doc = _inlineAssets(html, src.htmlVirtualPath);
     doc = doc.replace('</head>', `${CURSOR_RESET}\n</head>`);
-    if (css) doc = doc.replace('</head>', `<style>\n${css}\n</style>\n</head>`);
-    // Calculate JS offset before inserting bridge (bridge goes into <head>)
-    const headEnd   = doc.indexOf('<head>') + '<head>'.length + 1; // +1 for \n
-    const beforeJs  = doc.slice(0, doc.indexOf('</body>'));
-    const jsOffset  = _countLines(bridge) + _countLines(beforeJs.slice(headEnd)) + 3;
-    const finalBr   = bridge.replace('__JS_LINE_OFFSET__', jsOffset);
+    // Only inject the editor CSS/JS panes if the user has content in them AND
+    // they are not already referenced inside the HTML (avoid double-injection)
+    if (css && !src.html) doc = doc.replace('</head>', `<style>\n${css}\n</style>\n</head>`);
+    // Calculate JS offset before inserting bridge
+    const headEnd  = doc.indexOf('<head>') + '<head>'.length + 1;
+    const beforeJs = doc.slice(0, doc.indexOf('</body>'));
+    const jsOffset = _countLines(bridge) + _countLines(beforeJs.slice(headEnd)) + 3;
+    const finalBr  = bridge.replace('__JS_LINE_OFFSET__', jsOffset);
     doc = doc.replace('<head>', `<head>\n${finalBr}`);
-    if (js) doc = doc.replace('</body>',
+    if (js && !src.html) doc = doc.replace('</body>',
       `<script>\ntry{\n${js}\n}catch(e){window.__ceLog('error',[e.toString()]);}\n\x3C/script>\n</body>`);
     return doc;
   }
@@ -130,11 +251,10 @@ function buildLiveDoc(side) {
   <script>
 try {
 `;
-  // JS starts at: lines in prefix (with bridge substituted) + 1
   const bridgePlaceholderLines = _countLines('  BRIDGE_PLACEHOLDER');
   const bridgeLines = _countLines(bridge);
   const prefixLines = _countLines(prefix) - bridgePlaceholderLines + bridgeLines;
-  const jsOffset    = prefixLines; // line number in doc where user JS line 1 sits
+  const jsOffset    = prefixLines;
 
   const finalBridge = bridge.replace('__JS_LINE_OFFSET__', jsOffset);
 

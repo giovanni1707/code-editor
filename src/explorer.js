@@ -73,6 +73,84 @@ function renderExplorer() {
   });
 }
 
+/* ── Drag-and-drop: move file or folder into another folder ──── */
+let _dragId   = null;   // id being dragged
+let _dragType = null;   // 'file' | 'folder'
+
+function _onDragStart(e, id, type) {
+  _dragId   = id;
+  _dragType = type;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', id);
+  e.currentTarget.classList.add('dragging');
+}
+
+function _onDragEnd(e) {
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.explorer-item.drag-over').forEach(el2 => el2.classList.remove('drag-over'));
+  _dragId = _dragType = null;
+}
+
+function _onDragOver(e, targetFolderId) {
+  if (!_dragId) return;
+  // Prevent dropping a folder into itself or its own descendant
+  if (_dragType === 'folder' && _isSelfOrDescendant(_dragId, targetFolderId)) return;
+  // Prevent no-op (already in this folder)
+  const item = _dragType === 'file' ? state.project.files[_dragId] : state.project.folders[_dragId];
+  if (item && item.parentId === targetFolderId) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.classList.add('drag-over');
+}
+
+function _onDragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+
+function _onDrop(e, targetFolderId) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!_dragId) return;
+  if (_dragType === 'folder' && _isSelfOrDescendant(_dragId, targetFolderId)) return;
+
+  if (_dragType === 'file' && state.project.files[_dragId]) {
+    state.project.files[_dragId].parentId = targetFolderId;
+  } else if (_dragType === 'folder' && state.project.folders[_dragId]) {
+    state.project.folders[_dragId].parentId = targetFolderId;
+  }
+
+  // Expand the target folder so the dropped item is visible
+  if (targetFolderId && state.project.folders[targetFolderId]) {
+    state.project.folders[targetFolderId].collapsed = false;
+  }
+
+  saveProject();
+  renderExplorer();
+}
+
+/** Also allow dropping onto the root (the file list itself, between items) */
+function _onDropRoot(e) {
+  e.preventDefault();
+  if (!_dragId) return;
+  if (_dragType === 'file'   && state.project.files[_dragId])   state.project.files[_dragId].parentId   = null;
+  if (_dragType === 'folder' && state.project.folders[_dragId]) state.project.folders[_dragId].parentId = null;
+  saveProject();
+  renderExplorer();
+}
+
+/** Returns true if `ancestorId` is `nodeId` or a folder ancestor of it */
+function _isSelfOrDescendant(nodeId, ancestorId) {
+  if (nodeId === ancestorId) return true;
+  let cur = ancestorId;
+  while (cur) {
+    const f = state.project.folders[cur];
+    if (!f) break;
+    if (f.parentId === nodeId) return true;
+    cur = f.parentId;
+  }
+  return false;
+}
+
 /* ── Build a folder row ──────────────────────────────────────── */
 function _makeFolderRow({ item: folder, depth }) {
   const INDENT = 14;
@@ -108,6 +186,16 @@ function _makeFolderRow({ item: folder, depth }) {
   row.appendChild(icon);
   row.appendChild(nameEl);
   row.appendChild(actions);
+
+  // Drag source (move folder)
+  row.draggable = true;
+  row.addEventListener('dragstart', e => _onDragStart(e, folder.id, 'folder'));
+  row.addEventListener('dragend',   _onDragEnd);
+
+  // Drop target (receive files/folders into this folder)
+  row.addEventListener('dragover',  e => _onDragOver(e, folder.id));
+  row.addEventListener('dragleave', _onDragLeave);
+  row.addEventListener('drop',      e => _onDrop(e, folder.id));
 
   // Click → toggle collapse
   row.addEventListener('click', e => {
@@ -170,6 +258,11 @@ function _makeFileRow({ item: file, depth }) {
   row.appendChild(dot);
   row.appendChild(nameEl);
   row.appendChild(actions);
+
+  // Drag source (move file)
+  row.draggable = true;
+  row.addEventListener('dragstart', e => _onDragStart(e, file.id, 'file'));
+  row.addEventListener('dragend',   _onDragEnd);
 
   // Click → open file
   row.addEventListener('click', e => {
@@ -519,7 +612,20 @@ function wireExplorer() {
   });
 
   // Close context menu on scroll
-  document.getElementById('sidebarFileList')?.addEventListener('scroll', _closeCtxMenu);
+  const fileList = document.getElementById('sidebarFileList');
+  fileList?.addEventListener('scroll', _closeCtxMenu);
+
+  // Root drop zone: drop onto empty space → move to root (parentId = null)
+  fileList?.addEventListener('dragover', e => {
+    if (!_dragId) return;
+    if (e.target.closest('.explorer-item')) return; // let the item handle it
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  });
+  fileList?.addEventListener('drop', e => {
+    if (e.target.closest('.explorer-item')) return;
+    _onDropRoot(e);
+  });
 
   // Restore sidebar width + visibility
   try {
