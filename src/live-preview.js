@@ -186,23 +186,32 @@ function _getPreviewSources(side) {
   // Flush current textarea content to the active file first
   if (typeof flushAllPanels === 'function') flushAllPanels();
 
+  const activeId = state.panelTabs[side].activeId;
+  const activeFile = activeId ? state.project.files[activeId] : null;
+  const activeExt  = activeFile ? activeFile.name.split('.').pop().toLowerCase() : '';
+
   const openIds = state.panelTabs[side].openIds;
   const files   = openIds.map(id => state.project.files[id]).filter(Boolean);
 
-  const find = exts => {
-    const f = files.find(f => {
-      const ext = f.name.split('.').pop().toLowerCase();
-      return exts.includes(ext);
-    });
+  // Priority: always use the active file's type first, then fall back to any open file
+  const findExt = exts => {
+    // 1. Active file matches requested type → use it
+    if (activeFile && exts.includes(activeExt)) return activeFile.content || '';
+    // 2. Otherwise find first open file of that type
+    const f = files.find(f => exts.includes(f.name.split('.').pop().toLowerCase()));
     return f ? f.content : '';
   };
 
-  const htmlFile = files.find(f => ['html','htm'].includes(f.name.split('.').pop().toLowerCase()));
+  // Determine htmlFile: active file if it's HTML, otherwise first open HTML
+  const isActiveHtml = activeFile && ['html','htm'].includes(activeExt);
+  const htmlFile = isActiveHtml
+    ? activeFile
+    : files.find(f => ['html','htm'].includes(f.name.split('.').pop().toLowerCase()));
 
   return {
-    html:     find(['html', 'htm']),
-    css:      find(['css', 'scss', 'less']),
-    js:       find(['js', 'ts', 'mjs', 'jsx', 'tsx']),
+    html:            findExt(['html', 'htm']),
+    css:             findExt(['css', 'scss', 'less']),
+    js:              findExt(['js', 'ts', 'mjs', 'jsx', 'tsx']),
     htmlVirtualPath: htmlFile ? _virtualPath(htmlFile) : 'index.html',
   };
 }

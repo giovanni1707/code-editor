@@ -72,6 +72,10 @@ function openFileInPanel(side, fileId) {
   if (side === 'left') el.sbFileName.textContent = state.project.files[fileId].name;
 
   savePanelTabs();
+
+  // Refresh live preview / console if active
+  if (state.panelMode[side] === 'live') scheduleLivePreview(side);
+  else if (state.panelMode[side] === 'edit') scheduleConsoleRun(side);
 }
 
 /* ── Close a file tab ────────────────────────────────────────── */
