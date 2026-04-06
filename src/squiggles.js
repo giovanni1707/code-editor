@@ -22,43 +22,47 @@
 /**
  * Returns { line, col, message } (1-based) if `code` has a SyntaxError,
  * or null if the code is valid.
+ *
+ * Uses Acorn — the same parser powering ESLint, Babel, and webpack.
+ * Acorn gives exact, browser-consistent line+col pointing to the precise
+ * character where the error occurred, not a heuristic approximation.
+ *
+ * Falls back to new Function() if Acorn is not yet loaded.
  */
 function _checkSyntax(code) {
+  // ── Acorn path (preferred) ────────────────────────────────────────
+  if (typeof acorn !== 'undefined') {
+    try {
+      acorn.parse(code, {
+        ecmaVersion: 'latest',
+        sourceType:  'module',   // allows import/export
+      });
+      return null; // no error
+    } catch (err) {
+      // Acorn SyntaxError has .loc.line / .loc.column (0-based col → +1)
+      // and .pos (character offset) as a fallback
+      const line = err.loc ? err.loc.line       : 1;
+      const col  = err.loc ? err.loc.column + 1 : 1; // convert 0-based → 1-based
+      // Clean up message: Acorn appends " (N:N)" — strip it for display
+      const message = (err.message || '').replace(/\s*\(\d+:\d+\)$/, '');
+      return { line, col, message };
+    }
+  }
+
+  // ── Fallback: new Function() ─────────────────────────────────────
   try {
-    // Use Function constructor — safer than direct eval, catches syntax errors
-    // Wrap in async to allow top-level await without error
     new Function(code); // eslint-disable-line no-new-func
     return null;
   } catch (err) {
     if (!(err instanceof SyntaxError)) return null;
-
-    // Try to extract line number from the error
-    // Chrome:  "Unexpected token '}' (1:42)"  or via err.stack
-    // Firefox: err.lineNumber is available
-    let line = null;
-    let col  = null;
-
-    // Firefox
-    if (err.lineNumber) {
-      line = err.lineNumber;
-      col  = err.columnNumber || 0;
-    }
-
-    // Chrome / Edge — parse the stack string
+    let line = null, col = null;
+    if (err.lineNumber) { line = err.lineNumber; col = err.columnNumber || 0; }
     if (line === null && err.stack) {
-      // Pattern: "<anonymous>:3:5"
       const m = err.stack.match(/<anonymous>:(\d+):(\d+)/);
       if (m) { line = +m[1]; col = +m[2]; }
     }
-
-    // Fallback: mark line 1
     if (line === null) line = 1;
-
-    // Adjust for the Function() wrapper (adds 2 lines in Chrome)
-    // In practice Function('...') wraps the code inside "function anonymous(...) {\n...\n}"
-    // so Chrome reports line = actual_line + 2.  Clamp to [1, ∞).
-    line = Math.max(1, line - 2);
-
+    line = Math.max(1, line - 2); // Function() wrapper adds 2 lines
     return { line, col: col || 0, message: err.message };
   }
 }
