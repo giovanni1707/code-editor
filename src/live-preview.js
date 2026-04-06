@@ -243,15 +243,20 @@ function buildLiveDoc(side) {
     return doc;
   }
 
-  // Build the prefix to count its lines and know where JS lands
-  const prefix = `<!DOCTYPE html>
+  // Build the final document with a dummy offset first, then measure the real offset
+  const finalBridgeDummy = bridge.replace('__JS_LINE_OFFSET__', '0');
+
+  const beforeJs = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  BRIDGE_PLACEHOLDER
+  ${finalBridgeDummy}
   <style>
     body { font-family: system-ui, sans-serif; padding: 16px; font-size: 14px; }
+    a, button, [onclick], label, select, input[type="submit"], input[type="button"],
+    input[type="reset"], input[type="checkbox"], input[type="radio"], input[type="range"],
+    [role="button"], summary { cursor: pointer; }
     ${css}
   </style>
 </head>
@@ -260,11 +265,8 @@ function buildLiveDoc(side) {
   <script>
 try {
 `;
-  const bridgePlaceholderLines = _countLines('  BRIDGE_PLACEHOLDER');
-  const bridgeLines = _countLines(bridge);
-  const prefixLines = _countLines(prefix) - bridgePlaceholderLines + bridgeLines;
-  const jsOffset    = prefixLines;
-
+  // jsOffset = number of lines before user JS line 1 in the actual rendered doc
+  const jsOffset    = _countLines(beforeJs);
   const finalBridge = bridge.replace('__JS_LINE_OFFSET__', jsOffset);
 
   return `<!DOCTYPE html>
@@ -347,8 +349,10 @@ function scheduleLivePreview(side) {
 }
 
 function scheduleConsoleRun(side) {
+  // Clear immediately so stale errors/logs vanish as soon as the user types
+  clearConsole(side);
   clearTimeout(_consoleDebounce[side]);
-  _consoleDebounce[side] = setTimeout(() => runConsoleOnly(side), 400);
+  _consoleDebounce[side] = setTimeout(() => runConsoleOnly(side), 300);
 }
 
 /* ── Wire the refresh + popout buttons ───────────────────────── */

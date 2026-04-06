@@ -211,8 +211,10 @@ function _wireOne(ta, side) {
   }
 
   const schedule = () => {
+    // Clear immediately so squiggles don't linger while user is still typing
+    _clearSquiggles(ta);
     clearTimeout(_timer);
-    _timer = setTimeout(check, 600);
+    _timer = setTimeout(check, 300);
   };
 
   ta.addEventListener('input',  schedule);
