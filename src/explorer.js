@@ -528,6 +528,7 @@ async function _promptNewFile(parentId = null) {
   // If linked to disk, create the real file on disk immediately
   if (_fsIsLinked()) await fsCreateFile(id, parentId);
   renderExplorer();
+  _renderSidebarTitle();
   openFileInPanel(_focusedPanel, id);
   renderExplorer();
 }
@@ -651,26 +652,42 @@ async function fsSaveAll() {
 
 /* ── Sidebar title showing project name + dirty indicator ──── */
 function _renderSidebarTitle() {
-  const titleEl   = document.getElementById('sidebarTitle');
-  const closeBtn  = document.getElementById('closeProjectBtn');
-  const saveBtn   = document.getElementById('saveToDiskBtn');
+  const titleEl  = document.getElementById('sidebarTitle');
+  const closeBtn = document.getElementById('closeProjectBtn');
+  const saveBtn  = document.getElementById('saveToDiskBtn');
   if (!titleEl) return;
+
+  const hasFiles = Object.keys(state.project.files).length > 0 ||
+                   Object.keys(state.project.folders).length > 0;
+
+  // Close button: visible whenever there is an open project (linked or imported)
+  if (closeBtn) closeBtn.style.display = hasFiles ? '' : 'none';
+
   if (!_fsDirHandle) {
-    titleEl.textContent = 'EXPLORER';
-    titleEl.style.color = '';
-    titleEl.title = '';
-    if (closeBtn) closeBtn.style.display = 'none';
-    if (saveBtn)  saveBtn.style.display  = 'none';
+    // Imported project (no disk link) — show project name from root folder or generic
+    if (hasFiles) {
+      const rootFolders = Object.values(state.project.folders).filter(f => !f.parentId);
+      const name = rootFolders.length === 1 ? rootFolders[0].name : 'PROJECT';
+      titleEl.textContent = name;
+      titleEl.style.color = '';
+      titleEl.title = 'Imported project (read-only — use 📂 to open for editing)';
+    } else {
+      titleEl.textContent = 'EXPLORER';
+      titleEl.style.color = '';
+      titleEl.title = '';
+    }
+    if (saveBtn) saveBtn.style.display = 'none';
     return;
   }
+
+  // Disk-linked project
   const dirty = _fsDirty.size > 0;
   titleEl.textContent = _fsDirHandle.name + (dirty ? '  ●' : '  ✓');
   titleEl.style.color = dirty ? 'var(--yellow, #e3b341)' : 'var(--green, #3fb950)';
   titleEl.title = dirty ? 'Unsaved changes — Ctrl+S to save' : 'All changes saved to disk';
-  if (closeBtn) closeBtn.style.display = '';
   if (saveBtn) {
     saveBtn.style.display = '';
-    saveBtn.title = dirty ? 'Save changes to disk (Ctrl+S)' : 'All saved ✓';
+    saveBtn.title  = dirty ? 'Save changes to disk (Ctrl+S)' : 'All saved ✓';
     saveBtn.style.color = dirty ? 'var(--yellow, #e3b341)' : 'var(--green, #3fb950)';
   }
 }
@@ -886,6 +903,7 @@ async function importViaDirectoryPicker() {
   savePanelTabs();
   renderExplorer();
   ['left','right'].forEach(s => renderTabBar(s));
+  _renderSidebarTitle();
   toast('Project imported: ' + dirHandle.name, 3000);
 }
 
@@ -969,6 +987,7 @@ async function importViaFileInput(fileList) {
   savePanelTabs();
   renderExplorer();
   ['left','right'].forEach(s => renderTabBar(s));
+  _renderSidebarTitle();
   toast('Project imported: ' + rootName, 3000);
 }
 
