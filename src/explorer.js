@@ -107,19 +107,33 @@ function _onDragLeave(e) {
   e.currentTarget.classList.remove('drag-over');
 }
 
-function _onDrop(e, targetFolderId) {
+async function _onDrop(e, targetFolderId) {
   e.preventDefault();
   e.currentTarget.classList.remove('drag-over');
   if (!_dragId) return;
   if (_dragType === 'folder' && _isSelfOrDescendant(_dragId, targetFolderId)) return;
 
-  if (_dragType === 'file' && state.project.files[_dragId]) {
-    state.project.files[_dragId].parentId = targetFolderId;
-  } else if (_dragType === 'folder' && state.project.folders[_dragId]) {
-    state.project.folders[_dragId].parentId = targetFolderId;
+  const dragId   = _dragId;
+  const dragType = _dragType;
+
+  // Capture old parentId before mutating state
+  const oldParentId = dragType === 'file'
+    ? state.project.files[dragId]?.parentId
+    : state.project.folders[dragId]?.parentId;
+
+  if (oldParentId === targetFolderId) return; // no-op
+
+  if (_fsIsLinked()) {
+    await _fsMoveItem(dragId, dragType, oldParentId, targetFolderId);
   }
 
-  // Expand the target folder so the dropped item is visible
+  // Update state
+  if (dragType === 'file' && state.project.files[dragId]) {
+    state.project.files[dragId].parentId = targetFolderId;
+  } else if (dragType === 'folder' && state.project.folders[dragId]) {
+    state.project.folders[dragId].parentId = targetFolderId;
+  }
+
   if (targetFolderId && state.project.folders[targetFolderId]) {
     state.project.folders[targetFolderId].collapsed = false;
   }
@@ -128,14 +142,65 @@ function _onDrop(e, targetFolderId) {
   renderExplorer();
 }
 
-/** Also allow dropping onto the root (the file list itself, between items) */
-function _onDropRoot(e) {
+async function _onDropRoot(e) {
   e.preventDefault();
   if (!_dragId) return;
-  if (_dragType === 'file'   && state.project.files[_dragId])   state.project.files[_dragId].parentId   = null;
-  if (_dragType === 'folder' && state.project.folders[_dragId]) state.project.folders[_dragId].parentId = null;
+
+  const dragId   = _dragId;
+  const dragType = _dragType;
+  const oldParentId = dragType === 'file'
+    ? state.project.files[dragId]?.parentId
+    : state.project.folders[dragId]?.parentId;
+
+  if (oldParentId === null) return; // already at root
+
+  if (_fsIsLinked()) {
+    await _fsMoveItem(dragId, dragType, oldParentId, null);
+  }
+
+  if (dragType === 'file'   && state.project.files[dragId])   state.project.files[dragId].parentId   = null;
+  if (dragType === 'folder' && state.project.folders[dragId]) state.project.folders[dragId].parentId = null;
+
   saveProject();
   renderExplorer();
+}
+
+/* ── Move a file or folder on disk ──────────────────────────── */
+async function _fsMoveItem(id, type, oldParentId, newParentId) {
+  try {
+    const srcDirHandle = await _getDirHandleForFolder(oldParentId);
+    const dstDirHandle = await _getDirHandleForFolder(newParentId);
+
+    if (type === 'file') {
+      const file = state.project.files[id];
+      if (!file) return;
+      // Flush textarea if this file is active
+      let content = file.content || '';
+      ['left','right'].forEach(side => {
+        if (state.panelTabs[side].activeId !== id) return;
+        const lang = extToLang(file.name);
+        const ta = tabsFor(side)[lang]?.ta;
+        if (ta) content = ta.value;
+      });
+      // Delete old first, then create new — prevents duplicates
+      await srcDirHandle.removeEntry(file.name).catch(() => {});
+      const newHandle = await dstDirHandle.getFileHandle(file.name, { create: true });
+      const writable  = await newHandle.createWritable();
+      await writable.write(content);
+      await writable.close();
+      _fsHandles[id] = newHandle;
+
+    } else {
+      const folder = state.project.folders[id];
+      if (!folder) return;
+      // Delete old folder first, then recreate at destination
+      await srcDirHandle.removeEntry(folder.name, { recursive: true }).catch(() => {});
+      const newSubHandle = await dstDirHandle.getDirectoryHandle(folder.name, { create: true });
+      await _fsCopyDir(newSubHandle, id);
+    }
+  } catch (e) {
+    toast('Move on disk failed: ' + e.message, 3000);
+  }
 }
 
 /** Returns true if `ancestorId` is `nodeId` or a folder ancestor of it */
@@ -325,14 +390,78 @@ function _startRename(row, id, nameEl, type) {
   input.focus();
   input.select();
 
-  const commit = () => {
+  const commit = async () => {
     const newName = input.value.trim();
-    if (newName && newName !== item.name) {
-      if (type === 'folder') renameFolder(id, newName);
-      else { renameFile(id, newName); ['left','right'].forEach(s => renderTabBar(s)); }
-    }
     input.remove();
     nameEl.style.display = '';
+
+    if (!newName || newName === item.name) { renderExplorer(); return; }
+
+    if (type === 'folder') {
+      // Capture old name and parentId BEFORE renaming state
+      const oldName  = item.name;
+      const parentId = item.parentId;
+
+      if (_fsIsLinked()) {
+        try {
+          // Flush active files so content is up to date in state
+          ['left','right'].forEach(side => {
+            const fid = state.panelTabs[side].activeId;
+            if (!fid || !state.project.files[fid]) return;
+            const lang = extToLang(state.project.files[fid].name);
+            const ta = tabsFor(side)[lang]?.ta;
+            if (ta) state.project.files[fid].content = ta.value;
+          });
+
+          const parentHandle = await _getDirHandleForFolder(parentId);
+          // Create new dir
+          const newDirHandle = await parentHandle.getDirectoryHandle(newName, { create: true });
+          // Copy all children (reads from state.project.files which has current content)
+          await _fsCopyDir(newDirHandle, id);
+          // Delete old dir — use oldName captured before state mutation
+          await parentHandle.removeEntry(oldName, { recursive: true });
+          // Now rename in state
+          renameFolder(id, newName);
+        } catch (e) {
+          toast('Folder rename failed: ' + e.message, 3000);
+        }
+      } else {
+        renameFolder(id, newName);
+      }
+
+    } else {
+      // File rename
+      // Flush current textarea content into state first
+      ['left','right'].forEach(side => {
+        const fid = state.panelTabs[side].activeId;
+        if (fid !== id) return;
+        const lang = extToLang(state.project.files[fid]?.name || '');
+        const ta = tabsFor(side)[lang]?.ta;
+        if (ta) state.project.files[fid].content = ta.value;
+      });
+
+      const oldContent = state.project.files[id]?.content || '';
+      const oldHandle  = _fsHandles[id];
+      const parentId   = state.project.files[id]?.parentId ?? null;
+
+      renameFile(id, newName);
+      ['left','right'].forEach(s => renderTabBar(s));
+
+      if (_fsIsLinked() && oldHandle) {
+        try {
+          const dirHandle = await _getDirHandleForFolder(parentId);
+          const newHandle = await dirHandle.getFileHandle(newName, { create: true });
+          const writable  = await newHandle.createWritable();
+          await writable.write(oldContent);
+          await writable.close();
+          await dirHandle.removeEntry(oldHandle.name).catch(() => {});
+          _fsHandles[id] = newHandle;
+        } catch (e) {
+          toast('File rename failed: ' + e.message, 3000);
+        }
+      }
+    }
+
     renderExplorer();
   };
 
@@ -344,17 +473,49 @@ function _startRename(row, id, nameEl, type) {
 }
 
 /* ── Delete confirmation ─────────────────────────────────────── */
-function _confirmDelete(type, item) {
+async function _confirmDelete(type, item) {
   const label = type === 'folder' ? `folder "${item.name}" and all its contents` : `"${item.name}"`;
   if (!confirm(`Delete ${label}?`)) return;
-  if (type === 'folder') deleteFolder(item.id);
-  else deleteFile(item.id);
+
+  if (type === 'folder') {
+    // Remove all file handles for files inside this folder
+    if (_fsIsLinked()) {
+      Object.values(state.project.files).forEach(f => {
+        if (_isInFolder(f.id, item.id)) delete _fsHandles[f.id];
+      });
+      try {
+        const parentHandle = await _getDirHandleForFolder(item.parentId);
+        await parentHandle.removeEntry(item.name, { recursive: true });
+      } catch (e) { /* ignore */ }
+    }
+    deleteFolder(item.id);
+  } else {
+    if (_fsIsLinked() && _fsHandles[item.id]) {
+      try {
+        const parentHandle = await _getDirHandleForFolder(item.parentId);
+        await parentHandle.removeEntry(item.name);
+      } catch (e) { /* ignore */ }
+      delete _fsHandles[item.id];
+    }
+    deleteFile(item.id);
+  }
   renderExplorer();
   ['left','right'].forEach(s => renderTabBar(s));
 }
 
+function _isInFolder(fileId, folderId) {
+  const file = state.project.files[fileId];
+  if (!file) return false;
+  let cur = file.parentId;
+  while (cur) {
+    if (cur === folderId) return true;
+    cur = state.project.folders[cur]?.parentId ?? null;
+  }
+  return false;
+}
+
 /* ── New file prompt ─────────────────────────────────────────── */
-function _promptNewFile(parentId = null) {
+async function _promptNewFile(parentId = null) {
   const name = prompt('File name (e.g. index.html, style.css, app.js):');
   if (!name || !name.trim()) return;
   const id = createFile(name.trim(), parentId);
@@ -364,13 +525,15 @@ function _promptNewFile(parentId = null) {
     state.project.folders[parentId].collapsed = false;
     saveProject();
   }
+  // If linked to disk, create the real file on disk immediately
+  if (_fsIsLinked()) await fsCreateFile(id, parentId);
   renderExplorer();
   openFileInPanel(_focusedPanel, id);
   renderExplorer();
 }
 
 /* ── New folder prompt ───────────────────────────────────────── */
-function _promptNewFolder(parentId = null) {
+async function _promptNewFolder(parentId = null) {
   const name = prompt('Folder name:');
   if (!name || !name.trim()) return;
   // Expand parent folder if collapsed
@@ -378,13 +541,284 @@ function _promptNewFolder(parentId = null) {
     state.project.folders[parentId].collapsed = false;
     saveProject();
   }
-  createFolder(name.trim(), parentId);
+  const id = createFolder(name.trim(), parentId);
+  // If linked to disk, create the real folder on disk immediately
+  if (_fsIsLinked() && id) await fsCreateFolder(id, parentId);
   renderExplorer();
 }
 
 /* ── Sidebar header button handlers (called from HTML) ───────── */
 function promptNewFile()   { _promptNewFile(null);   }
 function promptNewFolder() { _promptNewFolder(null);  }
+
+/* ════════════════════════════════════════════════════════════════
+   OPEN FOLDER FOR EDITING (read-write, syncs back to disk)
+════════════════════════════════════════════════════════════════ */
+
+// In-memory map: file id → FileSystemFileHandle (not persisted)
+const _fsHandles   = {};   // fileId  → FileSystemFileHandle
+let   _fsDirHandle = null; // root FileSystemDirectoryHandle
+const _fsDirty     = new Set();
+const _fsSaveDebounce = {};
+
+function _fsIsLinked() { return !!_fsDirHandle; }
+
+/* Called by editor.js after content is written to state */
+function _fsMarkDirty(fileId) {
+  if (!_fsDirHandle || !_fsHandles[fileId]) return;
+  _fsDirty.add(fileId);
+  _renderSidebarTitle();
+  clearTimeout(_fsSaveDebounce[fileId]);
+  _fsSaveDebounce[fileId] = setTimeout(() => _fsWriteFile(fileId), 1500);
+}
+
+async function _fsWriteFile(fileId) {
+  const handle = _fsHandles[fileId];
+  const file   = state.project.files[fileId];
+  if (!handle || !file) return;
+  try {
+    // Ensure write permission is still granted
+    const perm = await handle.queryPermission({ mode: 'readwrite' });
+    if (perm !== 'granted') {
+      const req = await handle.requestPermission({ mode: 'readwrite' });
+      if (req !== 'granted') { toast('Write permission denied for ' + file.name, 3000); return; }
+    }
+    const writable = await handle.createWritable();
+    await writable.write(file.content || '');
+    await writable.close();
+    _fsDirty.delete(fileId);
+    _renderSidebarTitle();
+  } catch (e) {
+    toast('Save failed – ' + file.name + ': ' + e.message, 4000);
+  }
+}
+
+/* Ctrl+S / save button: flush active editors then write only dirty files */
+async function fsSaveAll() {
+  if (!_fsDirHandle) return;
+
+  // Flush active textarea content into state for both panels
+  ['left', 'right'].forEach(side => {
+    const fid = state.panelTabs[side].activeId;
+    if (!fid || !state.project.files[fid]) return;
+    const lang = extToLang(state.project.files[fid].name);
+    const ta   = tabsFor(side)[lang]?.ta;
+    if (ta) {
+      state.project.files[fid].content = ta.value;
+      // Mark as dirty so it gets written
+      if (_fsHandles[fid]) _fsDirty.add(fid);
+    }
+  });
+
+  // Cancel pending debounced writes — we're doing it now
+  Object.keys(_fsSaveDebounce).forEach(fid => clearTimeout(_fsSaveDebounce[fid]));
+
+  const ids = [..._fsDirty].filter(fid => state.project.files[fid] && _fsHandles[fid]);
+  if (!ids.length) {
+    toast('Nothing to save', 1500);
+    return;
+  }
+
+  let saved = 0, failed = 0;
+  for (const fid of ids) {
+    const handle  = _fsHandles[fid];
+    const content = state.project.files[fid].content || '';
+    try {
+      const writable = await handle.createWritable();
+      await writable.write(content);
+      await writable.close();
+      _fsDirty.delete(fid);
+      saved++;
+    } catch (e) {
+      try {
+        await handle.requestPermission({ mode: 'readwrite' });
+        const writable = await handle.createWritable();
+        await writable.write(content);
+        await writable.close();
+        _fsDirty.delete(fid);
+        saved++;
+      } catch (e2) {
+        console.error('Save failed:', state.project.files[fid].name, e2);
+        failed++;
+      }
+    }
+  }
+
+  _renderSidebarTitle();
+  if (failed) toast(`Saved ${saved}, failed ${failed}`, 3000);
+  else toast(`Saved ${saved} file${saved !== 1 ? 's' : ''} to disk ✓`, 2000);
+}
+
+/* ── Sidebar title showing project name + dirty indicator ──── */
+function _renderSidebarTitle() {
+  const titleEl   = document.getElementById('sidebarTitle');
+  const closeBtn  = document.getElementById('closeProjectBtn');
+  const saveBtn   = document.getElementById('saveToDiskBtn');
+  if (!titleEl) return;
+  if (!_fsDirHandle) {
+    titleEl.textContent = 'EXPLORER';
+    titleEl.style.color = '';
+    titleEl.title = '';
+    if (closeBtn) closeBtn.style.display = 'none';
+    if (saveBtn)  saveBtn.style.display  = 'none';
+    return;
+  }
+  const dirty = _fsDirty.size > 0;
+  titleEl.textContent = _fsDirHandle.name + (dirty ? '  ●' : '  ✓');
+  titleEl.style.color = dirty ? 'var(--yellow, #e3b341)' : 'var(--green, #3fb950)';
+  titleEl.title = dirty ? 'Unsaved changes — Ctrl+S to save' : 'All changes saved to disk';
+  if (closeBtn) closeBtn.style.display = '';
+  if (saveBtn) {
+    saveBtn.style.display = '';
+    saveBtn.title = dirty ? 'Save changes to disk (Ctrl+S)' : 'All saved ✓';
+    saveBtn.style.color = dirty ? 'var(--yellow, #e3b341)' : 'var(--green, #3fb950)';
+  }
+}
+
+/* ── Open folder with read-write access ──────────────────────── */
+async function openFolderForEditing() {
+  if (!window.showDirectoryPicker) {
+    toast('Your browser does not support the File System Access API', 3000);
+    return;
+  }
+  let dirHandle;
+  try {
+    dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+  } catch (e) {
+    if (e.name !== 'AbortError') toast('Could not open folder: ' + e.message, 3000);
+    return;
+  }
+
+  toast('Opening…', 60000);
+  _clearProject();
+
+  // Reset FS state
+  Object.keys(_fsHandles).forEach(k => delete _fsHandles[k]);
+  _fsDirty.clear();
+  _fsDirHandle = dirHandle;
+
+  await _readDirRW(dirHandle, null);
+
+  saveProject();
+  savePanelTabs();
+  renderExplorer();
+  ['left','right'].forEach(s => renderTabBar(s));
+  _renderSidebarTitle();
+  toast(`Opened: ${dirHandle.name} — Ctrl+S saves to disk`, 3000);
+}
+
+async function _readDirRW(dirHandle, parentId) {
+  for await (const [name, entry] of dirHandle.entries()) {
+    if (entry.kind === 'directory') {
+      if (_shouldSkipDir(name)) continue;
+      const folderId = uid();
+      state.project.folders[folderId] = { id: folderId, name, parentId, collapsed: false };
+      await _readDirRW(entry, folderId);
+    } else {
+      if (_shouldSkipFile(name)) continue;
+      try {
+        const f       = await entry.getFile();
+        const content = await f.text();
+        const id      = uid();
+        state.project.files[id] = { id, name, content, parentId };
+        _fsHandles[id] = entry; // keep FileSystemFileHandle for writing back
+      } catch (_) {}
+    }
+  }
+}
+
+/* ── Recursively copy a folder's files into a new dir handle ─── */
+async function _fsCopyDir(newDirHandle, folderId) {
+  // Get files in state that belong to this folder
+  const childFiles   = Object.values(state.project.files).filter(f => f.parentId === folderId);
+  const childFolders = Object.values(state.project.folders).filter(f => f.parentId === folderId);
+
+  // Copy files
+  for (const file of childFiles) {
+    try {
+      const newFileHandle = await newDirHandle.getFileHandle(file.name, { create: true });
+      const writable      = await newFileHandle.createWritable();
+      await writable.write(file.content || '');
+      await writable.close();
+      _fsHandles[file.id] = newFileHandle; // update handle to new location
+    } catch (e) { /* skip */ }
+  }
+
+  // Recurse into subfolders
+  for (const folder of childFolders) {
+    const subDir = await newDirHandle.getDirectoryHandle(folder.name, { create: true });
+    await _fsCopyDir(subDir, folder.id);
+  }
+}
+
+/* ── Get the directory handle for a folder id ────────────────── */
+function _getDirHandleForFolder(folderId) {
+  if (!folderId) return _fsDirHandle; // root
+  // Walk up to build path parts, then traverse from root
+  const parts = [];
+  let cur = folderId;
+  while (cur) {
+    const f = state.project.folders[cur];
+    if (!f) break;
+    parts.unshift(f.name);
+    cur = f.parentId;
+  }
+  // Traverse from root handle
+  return parts.reduce(async (handlePromise, name) => {
+    const handle = await handlePromise;
+    return handle.getDirectoryHandle(name, { create: true });
+  }, Promise.resolve(_fsDirHandle));
+}
+
+/* ── Create a real file on disk and register its handle ──────── */
+async function fsCreateFile(fileId, parentFolderId) {
+  if (!_fsDirHandle) return;
+  const file = state.project.files[fileId];
+  if (!file) return;
+  try {
+    const dirHandle = await _getDirHandleForFolder(parentFolderId);
+    const fileHandle = await dirHandle.getFileHandle(file.name, { create: true });
+    // Write empty content to actually create it on disk
+    const writable = await fileHandle.createWritable();
+    await writable.write('');
+    await writable.close();
+    _fsHandles[fileId] = fileHandle;
+  } catch (e) {
+    toast('Could not create ' + file.name + ' on disk: ' + e.message, 3000);
+  }
+}
+
+/* ── Create a real folder on disk ────────────────────────────── */
+async function fsCreateFolder(folderId, parentFolderId) {
+  if (!_fsDirHandle) return;
+  const folder = state.project.folders[folderId];
+  if (!folder) return;
+  try {
+    const parentHandle = await _getDirHandleForFolder(parentFolderId);
+    await parentHandle.getDirectoryHandle(folder.name, { create: true });
+  } catch (e) {
+    toast('Could not create folder ' + folder.name + ' on disk: ' + e.message, 3000);
+  }
+}
+
+/* ── Close project (unlink from disk, clear editor) ─────────── */
+function closeProject() {
+  if (_fsDirty.size > 0) {
+    if (!confirm('You have unsaved changes. Close anyway?')) return;
+  }
+  // Clear FS link
+  Object.keys(_fsHandles).forEach(k => delete _fsHandles[k]);
+  _fsDirty.clear();
+  _fsDirHandle = null;
+
+  _clearProject();
+  saveProject();
+  savePanelTabs();
+  renderExplorer();
+  ['left','right'].forEach(s => renderTabBar(s));
+  _renderSidebarTitle();
+  toast('Project closed', 2000);
+}
 
 /* ════════════════════════════════════════════════════════════════
    PROJECT IMPORT
@@ -409,7 +843,7 @@ const SKIP_DIRS = new Set([
 
 function _shouldSkipFile(name) {
   const ext = name.split('.').pop().toLowerCase();
-  return SKIP_EXTS.has(ext) || name.startsWith('.');
+  return SKIP_EXTS.has(ext) || name.startsWith('.') || ext === 'crswap' || name.endsWith('~');
 }
 
 function _shouldSkipDir(name) {
@@ -593,6 +1027,17 @@ function wireExplorer() {
   document.getElementById('sidebarToggleBtn')?.addEventListener('click', toggleSidebar);
 
   document.getElementById('importBtn')?.addEventListener('click', importProject);
+  document.getElementById('openFolderBtn')?.addEventListener('click', openFolderForEditing);
+  document.getElementById('closeProjectBtn')?.addEventListener('click', closeProject);
+  document.getElementById('saveToDiskBtn')?.addEventListener('click', fsSaveAll);
+
+  // Ctrl+S → save all dirty files to disk (only when a folder is linked)
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      e.preventDefault();
+      if (_fsIsLinked()) fsSaveAll();
+    }
+  });
 
   // Fallback <input> handler
   const importInput = document.getElementById('importFolderInput');

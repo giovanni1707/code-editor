@@ -285,10 +285,20 @@ ${js}
 </html>`;
 }
 
+const _previewBlobUrls = { left: null, right: null };
+
 function renderLivePreview(side) {
   clearConsole(side);
   const frame = side === 'left' ? el.previewFrameL : el.previewFrameR;
-  frame.srcdoc = buildLiveDoc(side);
+  // Revoke previous blob URL to avoid memory leak
+  if (_previewBlobUrls[side]) {
+    URL.revokeObjectURL(_previewBlobUrls[side]);
+    _previewBlobUrls[side] = null;
+  }
+  const blob = new Blob([buildLiveDoc(side)], { type: 'text/html' });
+  const url  = URL.createObjectURL(blob);
+  _previewBlobUrls[side] = url;
+  frame.src = url;
 }
 
 /* ── Hidden console iframes (always present, never visible) ──── */
@@ -304,10 +314,19 @@ function _getConsoleFrame(side) {
   return f;
 }
 
+const _consoleBlobUrls = { left: null, right: null };
+
 function runConsoleOnly(side) {
   clearConsole(side);
   const frame = _getConsoleFrame(side);
-  frame.srcdoc = buildLiveDoc(side);
+  if (_consoleBlobUrls[side]) {
+    URL.revokeObjectURL(_consoleBlobUrls[side]);
+    _consoleBlobUrls[side] = null;
+  }
+  const blob = new Blob([buildLiveDoc(side)], { type: 'text/html' });
+  const url  = URL.createObjectURL(blob);
+  _consoleBlobUrls[side] = url;
+  frame.src = url;
 }
 
 const _liveDebounce    = { left: null, right: null };

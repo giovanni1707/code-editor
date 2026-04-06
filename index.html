@@ -1166,11 +1166,21 @@
       border-bottom: 1px solid var(--border);
       flex-shrink: 0;
     }
-    #sidebarHeader span { flex: 1; }
+    #sidebarTitle {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      transition: color var(--speed);
+    }
     #newFileBtn { margin-left: 4px; }
     #importBtn  { margin-left: 2px; }
     #saveProjectBtn { margin-left: 2px; }
-    #newFileBtn, #newFolderBtn, #importBtn, #saveProjectBtn {
+    #openFolderBtn  { margin-left: 2px; }
+    #closeProjectBtn { margin-left: 2px; color: var(--red, #f85149); }
+    #saveToDiskBtn   { margin-left: 2px; color: var(--green, #3fb950); }
+    #newFileBtn, #newFolderBtn, #importBtn, #saveProjectBtn, #openFolderBtn, #closeProjectBtn, #saveToDiskBtn {
       width: 22px; height: 22px;
       border: none;
       background: transparent;
@@ -1183,7 +1193,7 @@
       transition: background var(--speed), color var(--speed);
       flex-shrink: 0;
     }
-    #newFileBtn:hover, #newFolderBtn:hover, #importBtn:hover, #saveProjectBtn:hover { background: var(--bg3); color: var(--txt0); }
+    #newFileBtn:hover, #newFolderBtn:hover, #importBtn:hover, #saveProjectBtn:hover, #openFolderBtn:hover, #closeProjectBtn:hover, #saveToDiskBtn:hover { background: var(--bg3); color: var(--txt0); }
 
     #sidebarFileList {
       flex: 1;
@@ -1517,11 +1527,14 @@
   <!-- ─── FILE EXPLORER SIDEBAR ────────────────────────────────── -->
   <div id="sidebar">
     <div id="sidebarHeader">
-      <span>EXPLORER</span>
+      <span id="sidebarTitle">EXPLORER</span>
       <button id="newFileBtn"    title="New File">&#x1F4C4;</button>
       <button id="newFolderBtn"  title="New Folder">&#x1F4C1;</button>
       <button id="importBtn"     title="Import project folder">&#x23CF;</button>
-      <button id="saveProjectBtn" title="Save project to computer">&#x1F4BE;</button>
+      <button id="openFolderBtn"   title="Open folder for editing">&#x1F4C2;</button>
+      <button id="saveToDiskBtn"   title="Save to disk (Ctrl+S)" style="display:none">&#x1F4BE;</button>
+      <button id="saveProjectBtn"  title="Download project as ZIP">&#x1F5DC;</button>
+      <button id="closeProjectBtn" title="Close project" style="display:none">&#x2715;</button>
     </div>
     <!-- fallback file input for browsers without showDirectoryPicker -->
     <input type="file" id="importFolderInput" multiple webkitdirectory style="display:none" />

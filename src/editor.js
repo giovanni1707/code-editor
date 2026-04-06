@@ -86,6 +86,11 @@ function wireTextarea(side, lang, t) {
     if (state.panelMode[side] === 'live') scheduleLivePreview(side);
     else if (state.panelMode[side] === 'edit') scheduleConsoleRun(side);
     scheduleContentSave(side, lang, t.ta.value);
+    // Mark file dirty immediately for disk-sync indicator
+    if (typeof _fsMarkDirty === 'function') {
+      const fid = state.panelTabs[side].activeId;
+      if (fid) _fsMarkDirty(fid);
+    }
   });
   t.ta.addEventListener('scroll', () => {
     t.hl.scrollTop    = t.ta.scrollTop;
@@ -118,6 +123,8 @@ function scheduleContentSave(side, lang, value) {
       if (fileLang === lang) {
         state.project.files[fid].content = value;
         saveProject();
+        // If a folder is open for editing, queue a disk write
+        if (typeof _fsMarkDirty === 'function') _fsMarkDirty(fid);
       }
     }
   }, 600);
