@@ -96,13 +96,9 @@ function _buildHTML(side) {
           return _fmt(val);
         }
       : _fmt;
-    const locBadge = e.loc
-      ? `<span class="cn-loc">${e.loc.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>`
-      : '';
     return `<div class="cn-row cn-${e.level}">` +
       `<span class="cn-icon">${_levelIcon(e.level)}</span>` +
       `<span class="cn-body">${e.args.map(fmt).join(' ')}</span>` +
-      locBadge +
     `</div>`;
   }).join('');
 }
@@ -163,8 +159,8 @@ function setConsoleSplit(side, on) {
 }
 
 /* ── Public API ──────────────────────────────────────────────── */
-function consoleReceive(side, level, args, loc) {
-  CON[side].entries.push({ level, args, loc: loc || null });
+function consoleReceive(side, level, args) {
+  CON[side].entries.push({ level, args });
   updateBadge(side);
   const c = CON[side];
   if (c.split || c.open) renderConsole(side);
@@ -319,10 +315,10 @@ function wireConsole() {
   // Route messages from iframes to the correct panel's console
   window.addEventListener('message', e => {
     if (!e.data || e.data.__source !== 'ce-preview') return;
-    const { side, level, args, loc } = e.data;
+    const { side, level, args } = e.data;
     if (!side || !CON[side]) return;
     if (level === 'clear') { clearConsole(side); return; }
 
-    consoleReceive(side, level, args, loc);
+    consoleReceive(side, level, args);
   });
 }

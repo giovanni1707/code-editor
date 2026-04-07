@@ -11,7 +11,7 @@ const CONSOLE_BRIDGE = `<script>
 (function(){
   var _p = window.parent !== window ? window.parent : window.top;
   var _side = '__SIDE__';
-  function _send(level, args, loc) {
+  function _send(level, args) {
     var serialized = Array.prototype.map.call(args, function(a) {
       if (a === null) return null;
       if (a === undefined) return undefined;
@@ -19,7 +19,7 @@ const CONSOLE_BRIDGE = `<script>
       if (t === 'string' || t === 'number' || t === 'boolean') return a;
       try { return JSON.parse(JSON.stringify(a)); } catch(e) { return String(a); }
     });
-    try { _p.postMessage({ __source: 'ce-preview', side: _side, level: level, args: serialized, loc: loc || null }, '*'); } catch(e){}
+    try { _p.postMessage({ __source: 'ce-preview', side: _side, level: level, args: serialized }, '*'); } catch(e){}
   }
   /* Expose globally so user script catch blocks can call it */
   window.__ceLog = _send;
@@ -32,7 +32,6 @@ const CONSOLE_BRIDGE = `<script>
   });
   var origClear = console.clear.bind(console);
   console.clear = function() { origClear(); try { _p.postMessage({ __source: 'ce-preview', side: _side, level: 'clear', args: [] }, '*'); } catch(e){} };
-  var _jsOffset = __JS_LINE_OFFSET__;
   window.addEventListener('error', function(e) {
     var msg = e.message || '';
     /* Ignore opaque cross-origin errors from CDN scripts — the browser
@@ -40,9 +39,7 @@ const CONSOLE_BRIDGE = `<script>
        Also ignore known third-party library internal warnings. */
     if (!e.lineno && !e.colno && msg === 'Script error.') return true;
     if (!e.filename || e.filename === '') return true; // no source = third-party
-    var userLine = e.lineno ? Math.max(1, e.lineno - _jsOffset) : null;
-    var loc = userLine ? 'line ' + userLine : null;
-    _send('error', [msg], loc);
+    _send('error', [msg]);
     return true; /* prevent default red error in page */
   });
   window.addEventListener('unhandledrejection', function(e) {
@@ -51,11 +48,6 @@ const CONSOLE_BRIDGE = `<script>
 })();
 \x3C/script>`;
 
-function _countLines(str) {
-  let n = 0;
-  for (let i = 0; i < str.length; i++) if (str[i] === '\n') n++;
-  return n;
-}
 
 /* ── Build virtual path for a project file (folder chain/name) ── */
 function _virtualPath(file) {
@@ -230,7 +222,7 @@ function buildLiveDoc(side) {
 
     // Inject bridge as very first child of <head> so it runs before any user script.
     // Fall back to prepending before <body> if <head> is absent.
-    const finalBr = bridge.replace('__JS_LINE_OFFSET__', '0');
+    const finalBr = bridge;
     if (/<head[\s>]/i.test(doc)) {
       doc = replaceCI(doc, '<head>', `<head>\n${finalBr}`);
     } else {
@@ -247,31 +239,7 @@ function buildLiveDoc(side) {
     return doc;
   }
 
-  // Build the final document with a dummy offset first, then measure the real offset
-  const finalBridgeDummy = bridge.replace('__JS_LINE_OFFSET__', '0');
-
-  const beforeJs = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  ${finalBridgeDummy}
-  <style>
-    body { font-family: system-ui, sans-serif; padding: 16px; font-size: 14px; }
-    a, button, [onclick], label, select, input[type="submit"], input[type="button"],
-    input[type="reset"], input[type="checkbox"], input[type="radio"], input[type="range"],
-    [role="button"], summary { cursor: pointer; }
-    ${css}
-  </style>
-</head>
-<body>
-  ${html}
-  <script>
-try {
-`;
-  // jsOffset = number of lines before user JS line 1 in the actual rendered doc
-  const jsOffset    = _countLines(beforeJs);
-  const finalBridge = bridge.replace('__JS_LINE_OFFSET__', jsOffset);
+  const finalBridge = bridge;
 
   return `<!DOCTYPE html>
 <html lang="en">

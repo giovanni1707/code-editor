@@ -519,6 +519,7 @@
     /* Horizontal resizer between editor and preview */
     .panel-h-resizer {
       display: none;
+      position: relative;
       width: 4px;
       background: var(--border);
       cursor: col-resize;
@@ -532,7 +533,7 @@
       content: '';
       position: absolute;
       inset: 0;
-      margin: auto -4px;
+      margin: 0 -4px;
       width: 12px;
     }
     .editor-col.live-split .panel-h-resizer { display: block; }
