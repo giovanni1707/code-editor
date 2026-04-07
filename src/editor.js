@@ -16,6 +16,28 @@ function encHTML(s) {
 function refreshHL(ta, hl, lang) {
   const prismLang = LANG_META[lang].prism;
   const grammar   = Prism.languages[prismLang] || Prism.languages.javascript;
+
+  // For HTML (markup), ensure embedded JS/CSS inside <script>/<style> tags
+  // is highlighted. Prism supports this natively when the markup grammar has
+  // the 'script' and 'style' tokens with their inside grammars wired up.
+  // Re-extend here in case the component loaded before JS/CSS were ready.
+  if (prismLang === 'markup' && Prism.languages.javascript && Prism.languages.css) {
+    if (!Prism.languages.markup.script?.inside?.rest?.javascript) {
+      Prism.languages.markup.script = {
+        pattern: /(<script[\s\S]*?>)[\s\S]*?(?=<\/script>)/i,
+        lookbehind: true,
+        greedy: true,
+        inside: Prism.languages.javascript,
+      };
+      Prism.languages.markup.style = {
+        pattern: /(<style[\s\S]*?>)[\s\S]*?(?=<\/style>)/i,
+        lookbehind: true,
+        greedy: true,
+        inside: Prism.languages.css,
+      };
+    }
+  }
+
   hl.querySelector('code').innerHTML = Prism.highlight(ta.value, grammar, prismLang);
   hl.scrollTop  = ta.scrollTop;
   hl.scrollLeft = ta.scrollLeft;

@@ -168,7 +168,7 @@ function consoleReceive(side, level, args, loc) {
   updateBadge(side);
   const c = CON[side];
   if (c.split || c.open) renderConsole(side);
-  else if (level === 'error' && !c.userClosed) openConsole(side);
+  else openConsole(side); // auto-open whenever there is output
 }
 
 function openConsole(side) {
@@ -323,20 +323,6 @@ function wireConsole() {
     if (!side || !CON[side]) return;
     if (level === 'clear') { clearConsole(side); return; }
 
-    // For SyntaxErrors the browser's e.colno is unreliable (Chrome points to the
-    // start of a token, not where the problem is). Re-parse with Acorn via
-    // _checkSyntax() to get an exact, consistent line+col for the display.
-    let correctedLoc = loc;
-    if (level === 'error' && loc && typeof _checkSyntax === 'function') {
-      const jsContent = tabsFor(side)?.['js']?.ta?.value;
-      if (jsContent) {
-        const syn = _checkSyntax(jsContent);
-        if (syn) {
-          correctedLoc = 'line ' + syn.line + ', col ' + syn.col;
-        }
-      }
-    }
-
-    consoleReceive(side, level, args, correctedLoc);
+    consoleReceive(side, level, args, loc);
   });
 }

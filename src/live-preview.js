@@ -9,7 +9,7 @@
 /* ── Console interceptor injected into every preview doc ────────── */
 const CONSOLE_BRIDGE = `<script>
 (function(){
-  var _p = window.parent;
+  var _p = window.parent !== window ? window.parent : window.top;
   var _side = '__SIDE__';
   function _send(level, args, loc) {
     var serialized = Array.prototype.map.call(args, function(a) {
@@ -23,20 +23,12 @@ const CONSOLE_BRIDGE = `<script>
   }
   /* Expose globally so user script catch blocks can call it */
   window.__ceLog = _send;
-  /* Patterns from third-party libraries that should not surface in the console */
-  var _ignore = [/\[Namespace Methods\]/i, /Invalid component or \$destroy/i];
-  function _filtered(level, args) {
-    var first = args && args[0];
-    if (typeof first === 'string') {
-      for (var i = 0; i < _ignore.length; i++) {
-        if (_ignore[i].test(first)) return;
-      }
-    }
-    _send(level, args);
-  }
   ['log','warn','error','info'].forEach(function(m) {
     var orig = console[m].bind(console);
-    console[m] = function() { orig.apply(console, arguments); _filtered(m, arguments); };
+    console[m] = function() {
+      orig.apply(console, arguments);
+      _send(m, arguments);
+    };
   });
   var origClear = console.clear.bind(console);
   console.clear = function() { origClear(); try { _p.postMessage({ __source: 'ce-preview', side: _side, level: 'clear', args: [] }, '*'); } catch(e){} };
@@ -49,7 +41,7 @@ const CONSOLE_BRIDGE = `<script>
     if (!e.lineno && !e.colno && msg === 'Script error.') return true;
     if (!e.filename || e.filename === '') return true; // no source = third-party
     var userLine = e.lineno ? Math.max(1, e.lineno - _jsOffset) : null;
-    var loc = userLine ? 'line ' + userLine + (e.colno ? ', col ' + e.colno : '') : null;
+    var loc = userLine ? 'line ' + userLine : null;
     _send('error', [msg], loc);
     return true; /* prevent default red error in page */
   });
@@ -228,17 +220,29 @@ function buildLiveDoc(side) {
   // If the HTML tab already contains a full document, inline referenced assets first
   if (/<!DOCTYPE|<html/i.test(html)) {
     let doc = _inlineAssets(html, src.htmlVirtualPath);
-    doc = doc.replace('</head>', `${CURSOR_RESET}\n</head>`);
-    // Only inject the editor CSS/JS panes if the user has content in them AND
-    // they are not already referenced inside the HTML (avoid double-injection)
-    if (css && !src.html) doc = doc.replace('</head>', `<style>\n${css}\n</style>\n</head>`);
-    // Calculate JS offset before inserting bridge
-    const headEnd  = doc.indexOf('<head>') + '<head>'.length + 1;
-    const beforeJs = doc.slice(0, doc.indexOf('</body>'));
-    const jsOffset = _countLines(bridge) + _countLines(beforeJs.slice(headEnd)) + 3;
-    const finalBr  = bridge.replace('__JS_LINE_OFFSET__', jsOffset);
-    doc = doc.replace('<head>', `<head>\n${finalBr}`);
-    if (js && !src.html) doc = doc.replace('</body>',
+
+    // Use case-insensitive replacements to handle any casing the user wrote
+    const replaceCI = (str, search, replacement) => {
+      const idx = str.search(new RegExp(search.replace(/[<>/]/g, c => '\\' + c), 'i'));
+      if (idx === -1) return str;
+      return str.slice(0, idx) + replacement + str.slice(idx + search.length);
+    };
+
+    // Inject bridge as very first child of <head> so it runs before any user script.
+    // Fall back to prepending before <body> if <head> is absent.
+    const finalBr = bridge.replace('__JS_LINE_OFFSET__', '0');
+    if (/<head[\s>]/i.test(doc)) {
+      doc = replaceCI(doc, '<head>', `<head>\n${finalBr}`);
+    } else {
+      doc = replaceCI(doc, '<body>', `${finalBr}\n<body>`);
+    }
+
+    // Inject cursor reset and optional CSS
+    doc = replaceCI(doc, '</head>', `${CURSOR_RESET}\n</head>`);
+    if (css && !src.html) doc = replaceCI(doc, '</head>', `<style>\n${css}\n</style>\n</head>`);
+
+    // Inject optional JS pane content before </body>
+    if (js && !src.html) doc = replaceCI(doc, '</body>',
       `<script>\ntry{\n${js}\n}catch(e){window.__ceLog('error',[e.toString()]);}\n\x3C/script>\n</body>`);
     return doc;
   }
@@ -312,32 +316,24 @@ function renderLivePreview(side) {
   frame.src = url;
 }
 
-/* ── Hidden console iframes (always present, never visible) ──── */
+/* ── Hidden console iframes (recreated each run) ─────────────── */
 const _consoleFrames = {};
-
-function _getConsoleFrame(side) {
-  if (_consoleFrames[side]) return _consoleFrames[side];
-  const f = document.createElement('iframe');
-  f.style.cssText = 'position:absolute;width:0;height:0;border:0;visibility:hidden;pointer-events:none;';
-  f.setAttribute('sandbox', 'allow-scripts');
-  document.body.appendChild(f);
-  _consoleFrames[side] = f;
-  return f;
-}
-
-const _consoleBlobUrls = { left: null, right: null };
 
 function runConsoleOnly(side) {
   clearConsole(side);
-  const frame = _getConsoleFrame(side);
-  if (_consoleBlobUrls[side]) {
-    URL.revokeObjectURL(_consoleBlobUrls[side]);
-    _consoleBlobUrls[side] = null;
-  }
-  const blob = new Blob([buildLiveDoc(side)], { type: 'text/html' });
-  const url  = URL.createObjectURL(blob);
-  _consoleBlobUrls[side] = url;
-  frame.src = url;
+  // Replace the iframe entirely each run — avoids stale cached frames and
+  // load-timing races from rapidly changing frame.src.
+  const old = _consoleFrames[side];
+  if (old) old.remove();
+
+  const f = document.createElement('iframe');
+  f.style.cssText = 'position:absolute;width:0;height:0;border:0;visibility:hidden;pointer-events:none;';
+  document.body.appendChild(f);
+  _consoleFrames[side] = f;
+
+  // Use srcdoc — synchronous, no blob URL race, no revoke needed.
+  // The frame is unsandboxed so window.parent.postMessage works.
+  f.srcdoc = buildLiveDoc(side);
 }
 
 const _liveDebounce    = { left: null, right: null };
