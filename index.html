@@ -1353,6 +1353,9 @@
     }
     .file-tab:hover { color: var(--txt0); }
     .file-tab.active { color: var(--txt0); border-bottom-color: var(--blue); }
+    .file-tab.tab-dragging { opacity: 0.4; }
+    .file-tab.tab-drop-left  { box-shadow: -2px 0 0 var(--blue); }
+    .file-tab.tab-drop-right { box-shadow:  2px 0 0 var(--blue); }
 
     .file-tab-label { max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
 
@@ -1628,7 +1631,7 @@
           <button class="col-tab-btn" id="refreshBtnL" title="Refresh">↺</button>
           <button class="col-tab-btn" id="popoutBtnL"  title="Open in browser tab">⤢</button>
         </div>
-        <iframe id="previewFrameL" sandbox="allow-scripts allow-same-origin allow-popups" title="Live preview left"></iframe>
+        <iframe id="previewFrameL" title="Live preview left"></iframe>
       </div>
 
       <!-- Console side-pane resizer (visible in console-split mode) -->
@@ -1763,7 +1766,7 @@
           <button class="col-tab-btn" id="refreshBtnR" title="Refresh">↺</button>
           <button class="col-tab-btn" id="popoutBtnR"  title="Open in browser tab">⤢</button>
         </div>
-        <iframe id="previewFrameR" sandbox="allow-scripts allow-same-origin allow-popups" title="Live preview right"></iframe>
+        <iframe id="previewFrameR" title="Live preview right"></iframe>
       </div>
 
       <!-- Console side-pane resizer (visible in console-split mode) -->

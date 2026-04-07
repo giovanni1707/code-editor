@@ -134,22 +134,23 @@ function _hideEmptyPanel(side) {
 
 /* ── Render the tab bar for one panel ────────────────────────── */
 function renderTabBar(side) {
-  const bar    = _tabBar(side);
-  const end    = _tabsEnd(side);
-  const pt     = state.panelTabs[side];
+  const bar = _tabBar(side);
+  const end = _tabsEnd(side);
+  const pt  = state.panelTabs[side];
 
   // Remove existing dynamic file tabs (keep .col-tabs-end)
   bar.querySelectorAll('.file-tab').forEach(el2 => el2.remove());
 
   // Insert file tabs before .col-tabs-end
   pt.openIds.forEach(fid => {
-    const file   = state.project.files[fid];
+    const file     = state.project.files[fid];
     if (!file) return;
     const isActive = fid === pt.activeId;
 
     const tab = document.createElement('div');
-    tab.className  = 'file-tab' + (isActive ? ' active' : '');
-    tab.dataset.id = fid;
+    tab.className   = 'file-tab' + (isActive ? ' active' : '');
+    tab.dataset.id  = fid;
+    tab.draggable   = true;
 
     const dot = document.createElement('span');
     dot.className = 'lang-dot';
@@ -169,6 +170,59 @@ function renderTabBar(side) {
     tab.appendChild(label);
     tab.appendChild(close);
     tab.addEventListener('click', () => openFileInPanel(side, fid));
+
+    // ── Drag-to-reorder ──────────────────────────────────────
+    tab.addEventListener('dragstart', e => {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', fid);
+      // Slight delay so the ghost image captures the tab before it gets .dragging
+      setTimeout(() => tab.classList.add('tab-dragging'), 0);
+    });
+
+    tab.addEventListener('dragend', () => {
+      tab.classList.remove('tab-dragging');
+      bar.querySelectorAll('.file-tab').forEach(t => t.classList.remove('tab-drop-left', 'tab-drop-right'));
+    });
+
+    tab.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const draggingId = e.dataTransfer.getData('text/plain');
+      if (draggingId === fid) return;
+      // Show insertion indicator left or right of this tab
+      const rect   = tab.getBoundingClientRect();
+      const isLeft = e.clientX < rect.left + rect.width / 2;
+      tab.classList.toggle('tab-drop-left',  isLeft);
+      tab.classList.toggle('tab-drop-right', !isLeft);
+    });
+
+    tab.addEventListener('dragleave', () => {
+      tab.classList.remove('tab-drop-left', 'tab-drop-right');
+    });
+
+    tab.addEventListener('drop', e => {
+      e.preventDefault();
+      const draggedId = e.dataTransfer.getData('text/plain');
+      if (!draggedId || draggedId === fid) return;
+      tab.classList.remove('tab-drop-left', 'tab-drop-right');
+
+      const ids      = pt.openIds;
+      const fromIdx  = ids.indexOf(draggedId);
+      const toIdx    = ids.indexOf(fid);
+      if (fromIdx === -1 || toIdx === -1) return;
+
+      // Determine insert position: left or right of target tab
+      const rect     = tab.getBoundingClientRect();
+      const insertAfter = e.clientX >= rect.left + rect.width / 2;
+
+      // Remove dragged item and re-insert at new position
+      ids.splice(fromIdx, 1);
+      const newIdx = ids.indexOf(fid);
+      ids.splice(insertAfter ? newIdx + 1 : newIdx, 0, draggedId);
+
+      savePanelTabs();
+      renderTabBar(side);
+    });
 
     bar.insertBefore(tab, end);
   });
