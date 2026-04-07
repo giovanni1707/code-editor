@@ -96,7 +96,7 @@ const state = {
     consoleOpen:     { left: false, right: false },
     consoleHeight:   { left: 200,  right: 200  },
     consolePaneW:    { left: 320,  right: 320  },
-    livePaneW:       { left: null, right: null },  // internal h-resizer px
+    livePaneW:       { left: null, right: null },  // internal h-resizer split %
     editorContent:   {
       left:  { html: null, css: null, js: null },
       right: { html: null, css: null, js: null },

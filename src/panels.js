@@ -295,13 +295,15 @@ function _initHResizer(side, resizer, wrap) {
 
   document.addEventListener('mousemove', e => {
     if (!dragging) return;
-    const delta      = e.clientX - startX;
-    const total      = startEditorW + startPreviewW;
-    let editorW      = Math.max(120, Math.min(total - 120, startEditorW + delta));
-    const previewW   = total - editorW;
+    const delta = e.clientX - startX;
+    const total = startEditorW + startPreviewW;
+    const editorW = Math.max(120, Math.min(total - 120, startEditorW + delta));
+    // Use percentages so the split scales when sidebar/window is resized
+    const editorPct  = editorW / total * 100;
+    const previewPct = 100 - editorPct;
     const editorPane = wrap.querySelector('.panel-editor-pane');
-    editorPane.style.flex = `0 0 ${editorW}px`;
-    lp.style.flex         = `0 0 ${previewW}px`;
+    editorPane.style.flex = `0 0 ${editorPct}%`;
+    lp.style.flex         = `0 0 ${previewPct}%`;
   });
 
   document.addEventListener('mouseup', () => {
@@ -310,9 +312,10 @@ function _initHResizer(side, resizer, wrap) {
     resizer.classList.remove('active');
     document.body.style.userSelect = '';
     _shieldOff();
-    // Save the live preview pane width for this side
+    // Save as percentage so it restores correctly at any window/sidebar width
     const editorPane = wrap.querySelector('.panel-editor-pane');
+    const total = wrap.getBoundingClientRect().width;
     const w = editorPane.getBoundingClientRect().width;
-    if (w > 0) { state.session.livePaneW[side] = w; saveSession(); }
+    if (total > 0) { state.session.livePaneW[side] = w / total * 100; saveSession(); }
   });
 }

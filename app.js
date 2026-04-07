@@ -120,11 +120,8 @@ function init() {
     const wrap       = side === 'left' ? el.liveWrapL : el.liveWrapR;
     const editorPane = wrap.querySelector('.panel-editor-pane');
     const lp         = side === 'left' ? el.livePreviewL : el.livePreviewR;
-    const total      = wrap.getBoundingClientRect().width;
-    if (total > 0) {
-      editorPane.style.flex = `0 0 ${w}px`;
-      lp.style.flex         = `0 0 ${total - w}px`;
-    }
+    editorPane.style.flex = `0 0 ${w}%`;
+    lp.style.flex         = `0 0 ${100 - w}%`;
   });
 
   // 15. Restore console state
