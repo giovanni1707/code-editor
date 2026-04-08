@@ -129,12 +129,8 @@ function wireToolbar() {
   el.themeBtn.addEventListener('click', toggleTheme);
   el.fsBtn.addEventListener('click', toggleFullscreen);
 
-  // Toolbar search buttons — open find/replace on the focused panel (default left)
+  // Toolbar search button — opens Find & Replace on the active panel
   document.getElementById('tbFindBtn')?.addEventListener('click', () => {
-    const side = document.activeElement?.closest('#colRight') ? 'right' : 'left';
-    toggleFind(side, 'find');
-  });
-  document.getElementById('tbReplaceBtn')?.addEventListener('click', () => {
     const side = document.activeElement?.closest('#colRight') ? 'right' : 'left';
     toggleFind(side, 'replace');
   });
