@@ -239,10 +239,15 @@ function initResizer() {
   let _vPct = 50;
   document.addEventListener('mousemove', e => {
     if (!vDragging) return;
-    const main = document.getElementById('main');
-    const rect  = main.getBoundingClientRect();
-    let pct     = (e.clientX - rect.left) / rect.width * 100;
-    pct         = Math.max(15, Math.min(85, pct));
+    // Measure only the columns area (excludes sidebar) so the % is accurate
+    const sidebar   = document.getElementById('sidebar');
+    const main      = document.getElementById('main');
+    const mainRect  = main.getBoundingClientRect();
+    const sidebarW  = sidebar ? sidebar.getBoundingClientRect().width : 0;
+    const colsLeft  = mainRect.left + sidebarW;
+    const colsWidth = mainRect.width - sidebarW;
+    let pct = (e.clientX - colsLeft) / colsWidth * 100;
+    pct     = Math.max(15, Math.min(85, pct));
     _vPct = pct;
     el.colLeft.style.flex  = `0 0 ${pct}%`;
     el.colRight.style.flex = `0 0 ${100 - pct}%`;
