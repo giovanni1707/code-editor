@@ -163,14 +163,20 @@ function _updateCount(side) {
 }
 
 /* ── Scroll textarea to current match ───────────────────────── */
-function _scrollToMatch(side) {
+function _scrollToMatch(side, focusTa = false) {
   const f  = FIND[side];
   const ta = activeTab(side).ta;
   if (!f.matches.length) return;
   const m = f.matches[f.idx];
-  ta.focus();
-  ta.selectionStart = m.start;
-  ta.selectionEnd   = m.end;
+  // Only focus the textarea when navigating explicitly (not while user is typing in find bar)
+  if (focusTa) {
+    ta.focus();
+    ta.selectionStart = m.start;
+    ta.selectionEnd   = m.end;
+  } else {
+    // Set selection without stealing focus so find input keeps focus while typing
+    try { ta.selectionStart = m.start; ta.selectionEnd = m.end; } catch (_) {}
+  }
   // Scroll into view
   const lh = parseInt(getComputedStyle(ta).lineHeight) || 20;
   const lineNum = ta.value.slice(0, m.start).split('\n').length - 1;
@@ -178,33 +184,37 @@ function _scrollToMatch(side) {
 }
 
 /* ── Run search ──────────────────────────────────────────────── */
-function _runFind(side) {
+function _runFind(side, focusTa = false) {
   const f  = FIND[side];
   const ta = activeTab(side).ta;
   f.matches = _findMatches(ta, f);
   if (f.idx >= f.matches.length) f.idx = 0;
   _updateCount(side);
   _highlightMatches(side);
-  if (f.matches.length) _scrollToMatch(side);
+  if (f.matches.length) _scrollToMatch(side, focusTa);
 }
 
 /* ── Navigate ────────────────────────────────────────────────── */
-function findNext(side) {
-  const f = FIND[side];
+function findNext(side, keepFocus = false) {
+  const f    = FIND[side];
+  const refs = _fels(side);
   if (!f.matches.length) return;
   f.idx = (f.idx + 1) % f.matches.length;
   _updateCount(side);
   _highlightMatches(side);
-  _scrollToMatch(side);
+  _scrollToMatch(side, !keepFocus);
+  if (keepFocus) refs.queryInput.focus();
 }
 
-function findPrev(side) {
-  const f = FIND[side];
+function findPrev(side, keepFocus = false) {
+  const f    = FIND[side];
+  const refs = _fels(side);
   if (!f.matches.length) return;
   f.idx = (f.idx - 1 + f.matches.length) % f.matches.length;
   _updateCount(side);
   _highlightMatches(side);
-  _scrollToMatch(side);
+  _scrollToMatch(side, !keepFocus);
+  if (keepFocus) refs.queryInput.focus();
 }
 
 /* ── Replace ─────────────────────────────────────────────────── */
@@ -278,7 +288,8 @@ function _wireFindPanel(side) {
   refs.queryInput.addEventListener('keydown', e => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      e.shiftKey ? findPrev(side) : findNext(side);
+      // keepFocus=true: Enter in find bar keeps focus in the find bar
+      e.shiftKey ? findPrev(side, true) : findNext(side, true);
     }
     if (e.key === 'Escape') closeFind(side);
   });
@@ -289,8 +300,8 @@ function _wireFindPanel(side) {
     if (e.key === 'Escape') closeFind(side);
   });
 
-  refs.prevBtn.addEventListener('click',    () => findPrev(side));
-  refs.nextBtn.addEventListener('click',    () => findNext(side));
+  refs.prevBtn.addEventListener('click',    () => findPrev(side, true));
+  refs.nextBtn.addEventListener('click',    () => findNext(side, true));
   refs.replBtn.addEventListener('click',    () => findReplace(side));
   refs.replAllBtn.addEventListener('click', () => findReplaceAll(side));
   refs.closeBtn.addEventListener('click',   () => closeFind(side));
