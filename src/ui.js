@@ -129,9 +129,9 @@ function wireToolbar() {
   el.themeBtn.addEventListener('click', toggleTheme);
   el.fsBtn.addEventListener('click', toggleFullscreen);
 
-  // Track last focused panel so the toolbar button targets the right one
-  document.getElementById('colLeft')?.addEventListener('focusin',  () => { _lastFocusedSide = 'left';  });
-  document.getElementById('colRight')?.addEventListener('focusin', () => { _lastFocusedSide = 'right'; });
+  // Track last focused panel via mousedown (not focusin, which fires on programmatic .focus() during init)
+  document.getElementById('colLeft')?.addEventListener('mousedown',  () => { _lastFocusedSide = 'left';  });
+  document.getElementById('colRight')?.addEventListener('mousedown', () => { _lastFocusedSide = 'right'; });
 
   // Toolbar search button — opens Find & Replace on the last-focused panel
   document.getElementById('tbFindBtn')?.addEventListener('click', () => {
