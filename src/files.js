@@ -19,29 +19,27 @@ function createFile(name, parentId = null) {
   name = _uniqueFileName(name, parentId);
   const id = uid();
   state.project.files[id] = { id, name, content: '', parentId };
-  saveProject();
+  state.project._v++; // notify reactive effects (add not tracked by proxy)
   return id;
 }
 
 function renameFile(id, newName) {
   newName = newName.trim();
   if (!newName || !state.project.files[id]) return false;
-  state.project.files[id].name = newName;
-  saveProject();
+  state.project.files[id].name = newName; // reactive: tracked via property access
   return true;
 }
 
 function deleteFile(id) {
   if (!state.project.files[id]) return;
-  delete state.project.files[id];
+  delete state.project.files[id]; // delete not tracked by proxy
+  state.project._v++;              // notify reactive effects
   ['left', 'right'].forEach(side => {
     const pt = state.panelTabs[side];
     pt.openIds = pt.openIds.filter(i => i !== id);
     if (pt.activeId === id)
       pt.activeId = pt.openIds[pt.openIds.length - 1] || null;
   });
-  saveProject();
-  savePanelTabs();
 }
 
 /* ── Ensure unique name within the same parent ───────────────── */
@@ -68,15 +66,14 @@ function createFolder(name, parentId = null) {
   name = _uniqueFolderName(name, parentId);
   const id = uid();
   state.project.folders[id] = { id, name, parentId, collapsed: false };
-  saveProject();
+  state.project._v++; // notify reactive effects (add not tracked by proxy)
   return id;
 }
 
 function renameFolder(id, newName) {
   newName = newName.trim();
   if (!newName || !state.project.folders[id]) return false;
-  state.project.folders[id].name = newName;
-  saveProject();
+  state.project.folders[id].name = newName; // reactive: tracked via property access
   return true;
 }
 
@@ -84,9 +81,8 @@ function deleteFolder(id) {
   if (!state.project.folders[id]) return;
   // Recursively delete children
   _deleteFolderContents(id);
-  delete state.project.folders[id];
-  saveProject();
-  savePanelTabs();
+  delete state.project.folders[id]; // delete not tracked by proxy
+  state.project._v++;                // notify reactive effects
 }
 
 function _deleteFolderContents(folderId) {
@@ -106,7 +102,7 @@ function _deleteFolderContents(folderId) {
 function toggleFolderCollapse(id) {
   if (!state.project.folders[id]) return;
   state.project.folders[id].collapsed = !state.project.folders[id].collapsed;
-  saveProject();
+  // reactive: .collapsed mutation triggers explorer + project-save effects
 }
 
 function _uniqueFolderName(name, parentId) {

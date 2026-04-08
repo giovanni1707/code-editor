@@ -57,6 +57,7 @@ const state = ReactiveUtils.state({
   project: {
     files:   {},  // { [id]: { id, name, content, parentId } }
     folders: {},  // { [id]: { id, name, parentId, collapsed } }
+    _v: 0,        // version counter — bumped on structural changes (add/delete)
   },
 
   /* which files are open per panel, and which is active */
@@ -286,5 +287,73 @@ function setupReactivity() {
     const fid  = state.panelTabs.left.activeId;
     const file = fid ? state.project.files[fid] : null;
     if (el.sbFileName) el.sbFileName.textContent = file ? file.name : '—';
+  });
+
+  // ── Phase 1: Explorer auto-render ────────────────────────────
+  // Tracks _v for structural adds/deletes, and individual properties
+  // for renames, parent moves, and folder collapse toggles.
+  effect(() => {
+    state.project._v; // structural version bump
+    Object.keys(state.project.files).forEach(id => {
+      const f = state.project.files[id];
+      f.name; f.parentId;
+    });
+    Object.keys(state.project.folders).forEach(id => {
+      const f = state.project.folders[id];
+      f.name; f.parentId; f.collapsed;
+    });
+    // Also track which file is active per panel (explorer highlights active file)
+    state.panelTabs.left.activeId;
+    state.panelTabs.right.activeId;
+    renderExplorer();
+  });
+
+  // ── Phase 1: Tab bars auto-render (one effect per panel) ─────
+  // Tracks openIds.length (covers push/splice/assign) and activeId.
+  ['left', 'right'].forEach(side => {
+    effect(() => {
+      state.panelTabs[side].openIds.length;
+      state.panelTabs[side].activeId;
+      state.project._v; // file renames change tab labels
+      renderTabBar(side);
+    });
+  });
+
+  // ── Phase 1: PanelTabs persistence ───────────────────────────
+  effect(() => {
+    state.panelTabs.left.openIds.length;
+    state.panelTabs.left.activeId;
+    state.panelTabs.right.openIds.length;
+    state.panelTabs.right.activeId;
+    savePanelTabs();
+  });
+
+  // ── Phase 2: Project auto-save (debounced) ───────────────────
+  // Watches _v (structural changes) and file/folder metadata.
+  // Content saves are handled separately by the editor's own debounce.
+  let _projectSaveTimer;
+  effect(() => {
+    state.project._v;
+    Object.keys(state.project.files).forEach(id => {
+      const f = state.project.files[id];
+      f.name; f.parentId;
+    });
+    Object.keys(state.project.folders).forEach(id => {
+      const f = state.project.folders[id];
+      f.name; f.parentId; f.collapsed;
+    });
+    clearTimeout(_projectSaveTimer);
+    _projectSaveTimer = setTimeout(saveProject, 300);
+  });
+
+  // ── Phase 3: Settings modal inputs two-way binding ───────────
+  // Inputs always reflect live state — openSettings() just shows the overlay.
+  effect(() => {
+    if (el.stgLines)     el.stgLines.checked              = state.settings.lineNums;
+    if (el.stgFontSize)  el.stgFontSize.value             = state.settings.fontSize;
+    if (el.stgFontSizeVal) el.stgFontSizeVal.textContent  = state.settings.fontSize + 'px';
+    if (el.stgWrap)      el.stgWrap.checked               = state.settings.wordWrap;
+    if (el.stgAutoPlay)  el.stgAutoPlay.checked           = state.settings.autoPlay;
+    if (el.stgSemiPause) el.stgSemiPause.checked          = state.settings.semiPause;
   });
 }

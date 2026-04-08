@@ -65,11 +65,7 @@ function openFileInPanel(side, fileId) {
   const sqOverlay = tabsFor(side)['js'].surface?.querySelector('.sq-overlay');
   if (sqOverlay) sqOverlay.innerHTML = '';
 
-  // Rebuild the tab bar DOM
-  renderTabBar(side);
-
-  // sbFileName is auto-updated by the reactive status-bar effect
-  savePanelTabs();
+  // renderTabBar, sbFileName, explorer highlight, savePanelTabs — all handled by reactive effects
 
   // Refresh live preview / console if active
   if (state.panelMode[side] === 'live') scheduleLivePreview(side);
@@ -83,7 +79,7 @@ function closeFileTab(side, fileId, e) {
   // Flush before closing if it's the active one
   const pt = state.panelTabs[side];
   if (pt.activeId === fileId) _flushActive(side);
-  saveProject();
+  // saveProject handled by reactive project-save effect
 
   pt.openIds = pt.openIds.filter(id => id !== fileId);
 
@@ -101,8 +97,7 @@ function closeFileTab(side, fileId, e) {
     }
   }
 
-  renderTabBar(side);
-  savePanelTabs();
+  // renderTabBar and savePanelTabs handled by reactive effects
 }
 
 /* ── Show empty panel when no files are open ─────────────────── */
@@ -218,8 +213,7 @@ function renderTabBar(side) {
       const newIdx = ids.indexOf(fid);
       ids.splice(insertAfter ? newIdx + 1 : newIdx, 0, draggedId);
 
-      savePanelTabs();
-      renderTabBar(side);
+      // openIds reassignment triggers reactive tab-bar + panelTabs effects
     });
 
     bar.insertBefore(tab, end);

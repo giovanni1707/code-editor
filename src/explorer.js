@@ -138,8 +138,8 @@ async function _onDrop(e, targetFolderId) {
     state.project.folders[targetFolderId].collapsed = false;
   }
 
-  saveProject();
-  renderExplorer();
+  // parentId mutation tracked reactively; _v bump covers the collapsed = false change
+  state.project._v++;
 }
 
 async function _onDropRoot(e) {
@@ -160,9 +160,7 @@ async function _onDropRoot(e) {
 
   if (dragType === 'file'   && state.project.files[dragId])   state.project.files[dragId].parentId   = null;
   if (dragType === 'folder' && state.project.folders[dragId]) state.project.folders[dragId].parentId = null;
-
-  saveProject();
-  renderExplorer();
+  // parentId mutation tracked reactively by explorer effect
 }
 
 /* ── Move a file or folder on disk ──────────────────────────── */
@@ -266,8 +264,7 @@ function _makeFolderRow({ item: folder, depth }) {
   row.addEventListener('click', e => {
     if (e.target.closest('.file-actions')) return;
     if (e.target.classList.contains('rename-input')) return;
-    toggleFolderCollapse(folder.id);
-    renderExplorer();
+    toggleFolderCollapse(folder.id); // reactive: collapsed mutation triggers explorer effect
   });
 
   // Double-click → rename
@@ -333,8 +330,7 @@ function _makeFileRow({ item: file, depth }) {
   row.addEventListener('click', e => {
     if (e.target.closest('.file-actions')) return;
     if (e.target.classList.contains('rename-input')) return;
-    openFileInPanel(_focusedPanel, file.id);
-    renderExplorer();
+    openFileInPanel(_focusedPanel, file.id); // reactive: activeId mutation triggers explorer + tab effects
   });
 
   // Double-click → rename
@@ -347,8 +343,8 @@ function _makeFileRow({ item: file, depth }) {
   row.addEventListener('contextmenu', e => {
     e.preventDefault();
     _showCtxMenu(e.clientX, e.clientY, [
-      { label: 'Open in Left Panel',  action: () => { openFileInPanel('left',  file.id); renderExplorer(); } },
-      { label: 'Open in Right Panel', action: () => { openFileInPanel('right', file.id); renderExplorer(); } },
+      { label: 'Open in Left Panel',  action: () => openFileInPanel('left',  file.id) },
+      { label: 'Open in Right Panel', action: () => openFileInPanel('right', file.id) },
       '-',
       { label: 'Rename', action: () => _startRename(row, file.id, nameEl, 'file') },
       { label: 'Delete', action: () => _confirmDelete('file', file) },
@@ -395,7 +391,7 @@ function _startRename(row, id, nameEl, type) {
     input.remove();
     nameEl.style.display = '';
 
-    if (!newName || newName === item.name) { renderExplorer(); return; }
+    if (!newName || newName === item.name) return; // no state change, explorer unchanged
 
     if (type === 'folder') {
       // Capture old name and parentId BEFORE renaming state
@@ -444,8 +440,7 @@ function _startRename(row, id, nameEl, type) {
       const oldHandle  = _fsHandles[id];
       const parentId   = state.project.files[id]?.parentId ?? null;
 
-      renameFile(id, newName);
-      ['left','right'].forEach(s => renderTabBar(s));
+      renameFile(id, newName); // reactive: name mutation triggers explorer + tab-bar effects
 
       if (_fsIsLinked() && oldHandle) {
         try {
@@ -462,7 +457,7 @@ function _startRename(row, id, nameEl, type) {
       }
     }
 
-    renderExplorer();
+    // explorer and tab-bar re-render handled by reactive effects
   };
 
   input.addEventListener('blur',   commit);
@@ -499,8 +494,7 @@ async function _confirmDelete(type, item) {
     }
     deleteFile(item.id);
   }
-  renderExplorer();
-  ['left','right'].forEach(s => renderTabBar(s));
+  // _v bump inside deleteFile/deleteFolder triggers explorer + tab-bar effects
 }
 
 function _isInFolder(fileId, folderId) {
@@ -523,14 +517,13 @@ async function _promptNewFile(parentId = null) {
   // Expand parent folder if it was collapsed
   if (parentId && state.project.folders[parentId]) {
     state.project.folders[parentId].collapsed = false;
-    saveProject();
+    // reactive: collapsed mutation triggers explorer effect
   }
   // If linked to disk, create the real file on disk immediately
   if (_fsIsLinked()) await fsCreateFile(id, parentId);
-  renderExplorer();
   _renderSidebarTitle();
   openFileInPanel(_focusedPanel, id);
-  renderExplorer();
+  // createFile already bumped _v; openFileInPanel mutates activeId — both trigger effects
 }
 
 /* ── New folder prompt ───────────────────────────────────────── */
@@ -540,12 +533,12 @@ async function _promptNewFolder(parentId = null) {
   // Expand parent folder if collapsed
   if (parentId && state.project.folders[parentId]) {
     state.project.folders[parentId].collapsed = false;
-    saveProject();
+    // reactive: collapsed mutation tracked
   }
   const id = createFolder(name.trim(), parentId);
   // If linked to disk, create the real folder on disk immediately
   if (_fsIsLinked() && id) await fsCreateFolder(id, parentId);
-  renderExplorer();
+  // createFolder already bumped _v — explorer effect handles re-render
 }
 
 /* ── Sidebar header button handlers (called from HTML) ───────── */
@@ -716,10 +709,9 @@ async function openFolderForEditing() {
 
   await _readDirRW(dirHandle, null);
 
-  saveProject();
+  saveProject();   // keep explicit: bulk load, want immediate persistence
   savePanelTabs();
-  renderExplorer();
-  ['left','right'].forEach(s => renderTabBar(s));
+  state.project._v++; // single bump triggers explorer + tab-bar effects
   _renderSidebarTitle();
   toast(`Opened: ${dirHandle.name} — Ctrl+S saves to disk`, 3000);
 }
@@ -829,10 +821,9 @@ function closeProject() {
   _fsDirHandle = null;
 
   _clearProject();
-  saveProject();
+  saveProject();   // keep explicit: clear is destructive, persist immediately
   savePanelTabs();
-  renderExplorer();
-  ['left','right'].forEach(s => renderTabBar(s));
+  // _clearProject sets files/folders to {} and panelTabs — reactive effects handle re-render
   _renderSidebarTitle();
   toast('Project closed', 2000);
 }
@@ -899,10 +890,9 @@ async function importViaDirectoryPicker() {
 
   await _readDirectoryHandle(dirHandle, null);
 
-  saveProject();
+  saveProject();   // keep explicit: bulk import, want immediate persistence
   savePanelTabs();
-  renderExplorer();
-  ['left','right'].forEach(s => renderTabBar(s));
+  state.project._v++; // single bump triggers explorer + tab-bar effects
   _renderSidebarTitle();
   toast('Project imported: ' + dirHandle.name, 3000);
 }
@@ -983,10 +973,9 @@ async function importViaFileInput(fileList) {
   await Promise.all(reads);
 
   const rootName = fileList[0].webkitRelativePath.split('/')[0] || 'Project';
-  saveProject();
+  saveProject();   // keep explicit: bulk import, want immediate persistence
   savePanelTabs();
-  renderExplorer();
-  ['left','right'].forEach(s => renderTabBar(s));
+  state.project._v++; // single bump triggers explorer + tab-bar effects
   _renderSidebarTitle();
   toast('Project imported: ' + rootName, 3000);
 }
