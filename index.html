@@ -1447,6 +1447,101 @@
       background-position: bottom;
       background-size: 6px 3px;
     }
+
+    /* ─── Command Palette ───────────────────────────────────────── */
+    .cp-overlay {
+      display: none; position: fixed; inset: 0; z-index: 9000;
+      background: rgba(0,0,0,.45);
+      align-items: flex-start; justify-content: center;
+      padding-top: 80px;
+    }
+    .cp-overlay.cp-show { display: flex; }
+    .cp-box {
+      background: var(--bg1); border: 1px solid var(--border);
+      border-radius: 8px; width: 520px; max-width: calc(100vw - 40px);
+      box-shadow: 0 16px 48px rgba(0,0,0,.5);
+      overflow: hidden;
+    }
+    .cp-input {
+      width: 100%; padding: 12px 16px; border: none; border-bottom: 1px solid var(--border);
+      background: transparent; color: var(--txt0); font-size: 14px; outline: none;
+      font-family: var(--font-ui);
+    }
+    .cp-list { max-height: 360px; overflow-y: auto; }
+    .cp-item {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 16px; cursor: pointer; font-size: 13px;
+      border-left: 2px solid transparent;
+    }
+    .cp-item:hover, .cp-item.cp-active {
+      background: var(--bg3); border-left-color: var(--blue);
+    }
+    .cp-dir  { color: var(--txt2); font-size: 11px; }
+    .cp-name { color: var(--txt0); }
+    .cp-item mark { background: none; color: var(--yellow); font-weight: 600; }
+    .cp-empty { padding: 20px 16px; color: var(--txt2); font-size: 13px; text-align: center; }
+
+    /* ─── Global Search ─────────────────────────────────────────── */
+    .gs-overlay {
+      display: none; position: fixed; inset: 0; z-index: 9000;
+      background: rgba(0,0,0,.45);
+      align-items: flex-start; justify-content: center;
+      padding-top: 60px;
+    }
+    .gs-overlay.gs-show { display: flex; }
+    .gs-box {
+      background: var(--bg1); border: 1px solid var(--border);
+      border-radius: 8px; width: 680px; max-width: calc(100vw - 40px);
+      max-height: 70vh; display: flex; flex-direction: column;
+      box-shadow: 0 16px 48px rgba(0,0,0,.5); overflow: hidden;
+    }
+    .gs-header {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 10px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .gs-input {
+      flex: 1; padding: 6px 8px; border: 1px solid var(--border);
+      border-radius: var(--r); background: var(--bg2); color: var(--txt0);
+      font-size: 13px; outline: none; font-family: var(--font-ui);
+    }
+    .gs-input:focus { border-color: var(--blue); }
+    .gs-toggle {
+      padding: 4px 8px; border: 1px solid var(--border); border-radius: var(--r);
+      background: transparent; color: var(--txt1); font-size: 12px; cursor: pointer;
+    }
+    .gs-toggle.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+    .gs-count { font-size: 11px; color: var(--txt2); white-space: nowrap; padding: 0 4px; }
+    .gs-close {
+      padding: 4px 8px; border: none; background: transparent;
+      color: var(--txt2); font-size: 16px; cursor: pointer; line-height: 1;
+    }
+    .gs-close:hover { color: var(--txt0); }
+    .gs-list { overflow-y: auto; flex: 1; }
+    .gs-file-heading {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 12px 4px; background: var(--bg2);
+      font-size: 11px; font-weight: 600; position: sticky; top: 0; z-index: 1;
+    }
+    .gs-file-dir  { color: var(--txt2); }
+    .gs-file-name { color: var(--txt0); }
+    .gs-file-count {
+      margin-left: auto; background: var(--bg3); border-radius: 10px;
+      padding: 1px 7px; font-size: 10px; color: var(--txt2);
+    }
+    .gs-result {
+      display: flex; align-items: baseline; gap: 10px;
+      padding: 4px 12px 4px 20px; cursor: pointer; font-size: 12px;
+    }
+    .gs-result:hover { background: var(--bg3); }
+    .gs-line-no {
+      color: var(--txt2); font-family: var(--font-mono);
+      font-size: 11px; min-width: 32px; text-align: right; flex-shrink: 0;
+    }
+    .gs-line-text {
+      color: var(--txt1); font-family: var(--font-mono);
+      white-space: pre; overflow: hidden; text-overflow: ellipsis;
+    }
+    .gs-result mark { background: none; color: var(--yellow); font-weight: 700; }
   </style>
 </head>
 <body>
@@ -1954,6 +2049,8 @@
 <script src="src/snippets.js"></script>
 <script src="src/autocomplete.js"></script>
 <script src="src/squiggles.js"></script>
+<script src="src/command-palette.js"></script>
+<script src="src/global-search.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
