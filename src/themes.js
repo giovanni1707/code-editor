@@ -404,9 +404,8 @@ ${prefix} .token.regex, ${prefix} .token.important { color: ${t.regex}     !impo
 
 function applyColorScheme(schemeId) {
   const scheme = COLOR_SCHEMES.find(s => s.id === schemeId) || COLOR_SCHEMES[0];
-  state.settings.colorScheme = scheme.id;
+  state.settings.colorScheme = scheme.id; // reactive settings effect handles persistence
   _getSchemeStyle().textContent = _buildSchemeCSS(scheme);
-  saveSettings();
   refreshAllHL();
   // Update active card in grid
   document.querySelectorAll('.scheme-card').forEach(c => {

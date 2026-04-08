@@ -155,7 +155,7 @@ function setConsoleSplit(side, on) {
 
   state.session.consoleSplit[side] = on;
   state.session.consoleOpen[side]  = c.open;
-  saveSession();
+  // reactive session effect handles persistence
 }
 
 /* ── Public API ──────────────────────────────────────────────── */
@@ -178,7 +178,7 @@ function openConsole(side) {
   refs.toggleBtn.classList.add('active');
   renderConsole(side);
   state.session.consoleOpen[side] = true;
-  saveSession();
+  // reactive session effect handles persistence
 }
 
 function closeConsole(side) {
@@ -196,7 +196,7 @@ function closeConsole(side) {
   }
   refs.toggleBtn.classList.remove('active');
   state.session.consoleOpen[side] = false;
-  saveSession();
+  // reactive session effect handles persistence
 }
 
 function toggleConsole(side) {
@@ -276,7 +276,7 @@ function _wireOneSide(side) {
     document.body.style.userSelect = '';
     _shieldOff();
     const h = refs.drawer.offsetHeight;
-    if (h > 0) { state.session.consoleHeight[side] = h; saveSession(); }
+    if (h > 0) { state.session.consoleHeight[side] = h; } // reactive session effect handles persistence
   });
 
   // Drag-to-resize (side pane)
@@ -301,7 +301,7 @@ function _wireOneSide(side) {
     document.body.style.userSelect = '';
     _shieldOff();
     const w = refs.sidePane.offsetWidth;
-    if (w > 0) { state.session.consolePaneW[side] = w; saveSession(); }
+    if (w > 0) { state.session.consolePaneW[side] = w; } // reactive session effect handles persistence
   });
 }
 
