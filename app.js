@@ -55,6 +55,7 @@ function init() {
   // 7. Wire all events
   wireAllTextareas();
   wireAllAutoClose();
+  wireAllColorPickers();
   wireTabButtons('left');
   wireTabButtons('right');
   wirePanelActions('left');

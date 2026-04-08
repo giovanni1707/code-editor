@@ -41,6 +41,11 @@ function refreshHL(ta, hl, lang) {
   hl.querySelector('code').innerHTML = Prism.highlight(ta.value, grammar, prismLang);
   hl.scrollTop  = ta.scrollTop;
   hl.scrollLeft = ta.scrollLeft;
+
+  // Post-processing: bracket pair colorization
+  applyBracketColors(hl);
+  // Post-processing: color swatches (runs async-safe, no DOM queries that block)
+  refreshColorSwatches(ta);
 }
 
 function refreshAllHL() {
