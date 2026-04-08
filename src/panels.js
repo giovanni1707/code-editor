@@ -146,11 +146,10 @@ function clearActive(side) {
   refreshHL(t.ta, t.hl, lang);
   updateGutter(t.ta, t.gutter);
   if (state.panelMode[side] === 'live') scheduleLivePreview(side);
-  // Persist clear to project file
+  // Persist clear to project file — reactive project-save effect handles persistence
   const fid = state.panelTabs[side].activeId;
   if (fid && state.project.files[fid]) {
     state.project.files[fid].content = '';
-    saveProject();
   }
 }
 

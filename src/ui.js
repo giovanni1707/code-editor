@@ -38,12 +38,7 @@ function toast(msg, ms = 2000) {
 
 /* ── Settings modal ──────────────────────────────────────────── */
 function openSettings() {
-  el.stgLines.checked           = state.settings.lineNums;
-  el.stgFontSize.value          = state.settings.fontSize;
-  el.stgFontSizeVal.textContent = state.settings.fontSize + 'px';
-  el.stgWrap.checked            = state.settings.wordWrap;
-  el.stgAutoPlay.checked        = state.settings.autoPlay;
-  el.stgSemiPause.checked       = state.settings.semiPause;
+  // Input values are kept in sync by the reactive settings-modal effect in setupReactivity()
   el.settingsOverlay.classList.add('open');
   openColorSchemePicker();
 }

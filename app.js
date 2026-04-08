@@ -81,15 +81,14 @@ function init() {
   setPlaybackVisible('left',  false);
   setPlaybackVisible('right', false);
 
-  // 9. Render file explorer + dynamic tab bars
-  renderExplorer();
+  // 9. Switch to the active file's lang tab per panel
+  // (renderExplorer + renderTabBar called by reactive effects in setupReactivity)
   ['left', 'right'].forEach(side => {
     const pt = state.panelTabs[side];
     if (pt.activeId && state.project.files[pt.activeId]) {
       const lang = extToLang(state.project.files[pt.activeId].name);
       switchTab(side, lang);
     }
-    renderTabBar(side);
   });
 
   // 10. Restore panel modes from session
