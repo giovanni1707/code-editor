@@ -153,6 +153,8 @@ function wireKeyboard() {
   document.addEventListener('keydown', e => {
     const ctrl = e.ctrlKey || e.metaKey;
     const inTA = document.activeElement?.classList.contains('code-ta');
+    // True when focus is in ANY text input (find bar, replace, settings inputs, etc.)
+    const inAnyInput = !inTA && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName);
 
     // Format active tab (Alt+Shift+F)
     if (e.altKey && e.shiftKey && e.key === 'F') {
@@ -225,8 +227,8 @@ function wireKeyboard() {
       return;
     }
 
-    // Space / R — typewriter controls for both panels when not in a textarea
-    if (!inTA) {
+    // Space / R — typewriter controls only when no input field has focus
+    if (!inTA && !inAnyInput) {
       if (e.key === ' ') {
         e.preventDefault();
         if (state.panelMode.left  === 'raw') togglePause('left');
