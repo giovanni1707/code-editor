@@ -196,12 +196,102 @@ function _getPreviewSources(side) {
     html:            findExt(['html', 'htm']),
     css:             findExt(['css', 'scss', 'less']),
     js:              findExt(['js', 'ts', 'mjs', 'jsx', 'tsx']),
+    _activeFile:     activeFile,
     htmlVirtualPath: htmlFile ? _virtualPath(htmlFile) : 'index.html',
   };
 }
 
+/* ── Lightweight Markdown → HTML renderer ────────────────────── */
+function _mdToHtml(md) {
+  // Escape HTML entities in a string (for code blocks)
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  // Fenced code blocks first (``` ... ```)
+  md = md.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) =>
+    `<pre><code class="language-${lang || 'text'}">${esc(code.trimEnd())}</code></pre>`);
+
+  // Horizontal rule
+  md = md.replace(/^(?:-{3,}|\*{3,}|_{3,})\s*$/gm, '<hr>');
+
+  // ATX headings
+  md = md.replace(/^(#{1,6})\s+(.+)$/gm, (_, h, t) =>
+    `<h${h.length}>${t.trim()}</h${h.length}>`);
+
+  // Blockquote
+  md = md.replace(/^>\s?(.+)$/gm, '<blockquote>$1</blockquote>');
+
+  // Unordered list items  → wrap later
+  md = md.replace(/^[\*\-\+]\s+(.+)$/gm, '<li>$1</li>');
+  // Ordered list items
+  md = md.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
+  // Wrap consecutive <li> runs in <ul>
+  md = md.replace(/(<li>[\s\S]*?<\/li>)(\n<li>[\s\S]*?<\/li>)*/g,
+    block => `<ul>${block}</ul>`);
+
+  // Inline: bold, italic, inline code, links, images
+  const inline = s => s
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img alt="$1" src="$2">')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/__(.+?)__/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/_(.+?)_/g, '<em>$1</em>');
+
+  // Wrap bare paragraphs (lines not already wrapped in a block tag)
+  md = md.split(/\n{2,}/).map(block => {
+    block = block.trim();
+    if (!block) return '';
+    if (/^<(h[1-6]|ul|ol|li|pre|blockquote|hr)/.test(block)) return block;
+    return `<p>${inline(block.replace(/\n/g, ' '))}</p>`;
+  }).join('\n');
+
+  return md;
+}
+
 function buildLiveDoc(side) {
   const src  = _getPreviewSources(side);
+
+  // ── Markdown preview ─────────────────────────────────────────
+  const activeFile = src._activeFile;
+  if (activeFile) {
+    const ext = activeFile.name.split('.').pop().toLowerCase();
+    if (ext === 'md') {
+      const bridge = CONSOLE_BRIDGE.replace('__SIDE__', side);
+      const body   = _mdToHtml(activeFile.content || '');
+      return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  ${bridge}
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; max-width: 760px;
+           margin: 0 auto; padding: 24px 32px; line-height: 1.7;
+           color: #24292f; background: #fff; }
+    h1,h2,h3,h4,h5,h6 { margin: 1.4em 0 .5em; font-weight: 600; line-height: 1.3; }
+    h1 { font-size: 2em; border-bottom: 1px solid #d8dee4; padding-bottom: .3em; }
+    h2 { font-size: 1.5em; border-bottom: 1px solid #d8dee4; padding-bottom: .3em; }
+    p  { margin: .8em 0; }
+    a  { color: #0969da; }
+    code { background: #f6f8fa; border-radius: 4px; padding: 2px 5px;
+           font-family: 'Fira Code', monospace; font-size: .9em; }
+    pre  { background: #f6f8fa; border-radius: 6px; padding: 16px; overflow: auto;
+           line-height: 1.5; }
+    pre code { background: none; padding: 0; }
+    blockquote { border-left: 4px solid #d0d7de; margin: 0; padding: 0 1em;
+                 color: #57606a; }
+    ul, ol { padding-left: 2em; margin: .8em 0; }
+    li { margin: .3em 0; }
+    hr { border: none; border-top: 1px solid #d8dee4; margin: 1.5em 0; }
+    img { max-width: 100%; }
+  </style>
+</head>
+<body>${body}</body>
+</html>`;
+    }
+  }
+
   let   html = src.html || tabsFor(side).html.ta.value;
   const css  = src.css  || tabsFor(side).css.ta.value;
   const js   = src.js   || tabsFor(side).js.ta.value;

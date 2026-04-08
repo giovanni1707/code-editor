@@ -13,13 +13,52 @@
    FILES
 ════════════════════════════════════════════════════════════════ */
 
+/* ── Starter boilerplate by extension ───────────────────────── */
+function _starterContent(name) {
+  const ext = (name.split('.').pop() || '').toLowerCase();
+  switch (ext) {
+    case 'html': case 'htm':
+      return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Document</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <script src="main.js"><\/script>
+</body>
+</html>`;
+    case 'css': case 'scss': case 'less': case 'sass':
+      return `*, *::before, *::after {\n  box-sizing: border-box;\n}\n\nbody {\n  margin: 0;\n  font-family: system-ui, sans-serif;\n}\n`;
+    case 'js': case 'mjs': case 'cjs':
+      return `'use strict';\n\n`;
+    case 'ts':
+      return `\n`;
+    case 'jsx':
+      return `function App() {\n  return (\n    <div>\n      <h1>Hello</h1>\n    </div>\n  );\n}\n\nexport default App;\n`;
+    case 'tsx':
+      return `import React from 'react';\n\nconst App: React.FC = () => {\n  return <div>Hello</div>;\n};\n\nexport default App;\n`;
+    case 'json':
+      return `{\n  \n}\n`;
+    case 'md':
+      return `# Title\n\n`;
+    case 'svg':
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">\n  \n</svg>\n`;
+    default:
+      return '';
+  }
+}
+
 function createFile(name, parentId = null) {
   name = name.trim();
   if (!name) return null;
   name = _uniqueFileName(name, parentId);
   const id = uid();
-  state.project.files[id] = { id, name, content: '', parentId };
-  state.project._v++; // notify reactive effects (add not tracked by proxy)
+  state.project.files[id] = { id, name, content: _starterContent(name), parentId };
+  state.project._v++;
   return id;
 }
 

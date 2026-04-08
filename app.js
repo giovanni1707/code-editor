@@ -75,6 +75,8 @@ function init() {
   wireAutoComplete();
   wireSquiggles();
   wireExplorer();
+  wireCommandPalette();
+  wireGlobalSearch();
 
   // 8. Initial UI state
   // (speedRange, speedNum, lineNumBtns are driven by reactive effects in setupReactivity)

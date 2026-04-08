@@ -163,6 +163,20 @@ function wireKeyboard() {
       return;
     }
 
+    // Ctrl+P — Command palette (quick open file)
+    if (ctrl && !e.shiftKey && e.key === 'p') {
+      e.preventDefault();
+      openCommandPalette();
+      return;
+    }
+
+    // Ctrl+Shift+F — Global search across all files
+    if (ctrl && e.shiftKey && e.key === 'F') {
+      e.preventDefault();
+      openGlobalSearch();
+      return;
+    }
+
     // Ctrl+F — Find, Ctrl+H — Replace
     if (ctrl && (e.key === 'f' || e.key === 'h')) {
       e.preventDefault();
@@ -171,9 +185,11 @@ function wireKeyboard() {
       return;
     }
 
-    // Escape — close find bar if open
+    // Escape — close overlays
     if (e.key === 'Escape') {
       closeSettings();
+      closeCommandPalette();
+      closeGlobalSearch();
       ['left','right'].forEach(side => { if (FIND[side].open) closeFind(side); });
       return;
     }
