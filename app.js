@@ -77,10 +77,7 @@ function init() {
   wireExplorer();
 
   // 8. Initial UI state
-  el.speedRange.value     = state.settings.speed;
-  el.speedNum.textContent = state.settings.speed;
-  el.lineNumBtnL.classList.toggle('active', state.settings.lineNums);
-  el.lineNumBtnR.classList.toggle('active', state.settings.lineNums);
+  // (speedRange, speedNum, lineNumBtns are driven by reactive effects in setupReactivity)
   setPlaybackVisible('left',  false);
   setPlaybackVisible('right', false);
 
@@ -156,10 +153,8 @@ function init() {
   updateAllGutters();
 
   // 17. Status bar
+  // (sbFileName is driven by the reactive status-bar effect in setupReactivity)
   ['left', 'right'].forEach(side => {
-    const fid  = state.panelTabs[side].activeId;
-    const file = fid && state.project.files[fid];
-    if (file && side === 'left') el.sbFileName.textContent = file.name;
     const lang = state.activeTab[side];
     updateStatus(tabsFor(side)[lang].ta);
   });
@@ -197,3 +192,6 @@ function _seedDefaultProject() {
 }
 
 init();
+
+// Wire reactive effects after DOM refs and initial state are ready
+setupReactivity();

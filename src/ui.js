@@ -15,11 +15,9 @@ function applyTheme() {
 }
 
 function toggleTheme() {
+  // Mutating state.settings.theme triggers the reactive theme effect (auto-saves + applies theme)
   state.settings.theme = state.settings.theme === 'dark' ? 'light' : 'dark';
-  applyTheme();
-  saveSettings();
   refreshAllHL();
-  // Rebuild scheme grid so dot colors reflect the new UI theme
   openColorSchemePicker();
 }
 
@@ -60,12 +58,11 @@ function wireSettings() {
     if (e.target === el.settingsOverlay) closeSettings();
   });
 
+  // Each mutation triggers the reactive settings persistence effect (no explicit saveSettings needed)
   el.stgLines.addEventListener('change', () => {
     state.settings.lineNums = el.stgLines.checked;
-    el.lineNumBtnL.classList.toggle('active', state.settings.lineNums);
-    el.lineNumBtnR.classList.toggle('active', state.settings.lineNums);
+    // lineNumBtnL/R classes updated by reactive effect
     updateAllGutters();
-    saveSettings();
   });
 
   el.stgFontSize.addEventListener('input', () => {
@@ -75,23 +72,19 @@ function wireSettings() {
     applyFontSize(px);
     updateAllGutters();
     refreshAllHL();
-    saveSettings();
   });
 
   el.stgWrap.addEventListener('change', () => {
     state.settings.wordWrap = el.stgWrap.checked;
     applyWrap();
-    saveSettings();
   });
 
   el.stgAutoPlay.addEventListener('change', () => {
     state.settings.autoPlay = el.stgAutoPlay.checked;
-    saveSettings();
   });
 
   el.stgSemiPause.addEventListener('change', () => {
     state.settings.semiPause = el.stgSemiPause.checked;
-    saveSettings();
   });
 
   document.getElementById('clearCacheBtn').addEventListener('click', () => {
@@ -110,9 +103,8 @@ function applyBrightness(val) {
 /* ── Toolbar buttons ─────────────────────────────────────────── */
 function wireToolbar() {
   el.speedRange.addEventListener('input', () => {
+    // Mutating speed triggers the reactive speed-display + persistence effects
     state.settings.speed = +el.speedRange.value;
-    el.speedNum.textContent = state.settings.speed;
-    saveSettings();
   });
 
   const brightnessRange = document.getElementById('brightnessRange');

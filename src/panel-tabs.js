@@ -68,9 +68,7 @@ function openFileInPanel(side, fileId) {
   // Rebuild the tab bar DOM
   renderTabBar(side);
 
-  // Update status bar filename
-  if (side === 'left') el.sbFileName.textContent = state.project.files[fileId].name;
-
+  // sbFileName is auto-updated by the reactive status-bar effect
   savePanelTabs();
 
   // Refresh live preview / console if active
@@ -96,7 +94,7 @@ function closeFileTab(side, fileId, e) {
       _loadIntoSurface(side, pt.activeId);
       const lang = extToLang(state.project.files[pt.activeId].name);
       switchTab(side, lang);
-      if (side === 'left') el.sbFileName.textContent = state.project.files[pt.activeId].name;
+      // sbFileName is auto-updated by the reactive status-bar effect
     } else {
       // No files open — show empty state
       _showEmptyPanel(side);
@@ -123,7 +121,7 @@ function _showEmptyPanel(side) {
     col.querySelector('.panel-editor-pane').appendChild(empty);
   }
   empty.style.display = 'flex';
-  if (side === 'left') el.sbFileName.textContent = '—';
+  // sbFileName ('—') is auto-updated by the reactive status-bar effect when activeId is null
 }
 
 function _hideEmptyPanel(side) {
