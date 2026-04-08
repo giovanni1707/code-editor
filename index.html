@@ -1448,6 +1448,90 @@
       background-size: 6px 3px;
     }
 
+    /* ─── Bracket pair colorization ─────────────────────────────── */
+    :root {
+      --br-d0: #e8b86d; /* gold    */
+      --br-d1: #a8d8ea; /* sky     */
+      --br-d2: #c3a6ff; /* lavender*/
+      --br-d3: #6bdb7a; /* green   */
+      --br-d4: #ff8fa3; /* pink    */
+      --br-d5: #5ec4f0; /* cyan    */
+    }
+    :root.light {
+      --br-d0: #c67c00;
+      --br-d1: #0072b8;
+      --br-d2: #7c4fc4;
+      --br-d3: #1a7c1e;
+      --br-d4: #c4003c;
+      --br-d5: #006fa8;
+    }
+    .hl-layer .br-d0 { color: var(--br-d0); }
+    .hl-layer .br-d1 { color: var(--br-d1); }
+    .hl-layer .br-d2 { color: var(--br-d2); }
+    .hl-layer .br-d3 { color: var(--br-d3); }
+    .hl-layer .br-d4 { color: var(--br-d4); }
+    .hl-layer .br-d5 { color: var(--br-d5); }
+
+    /* ─── Color picker swatches ──────────────────────────────────── */
+    .cp-swatch-layer {
+      position: absolute; inset: 0;
+      pointer-events: none;
+      z-index: 4;
+      overflow: hidden;
+    }
+    .cp-swatch {
+      position: absolute;
+      width: 11px; height: 11px;
+      border-radius: 2px;
+      border: 1px solid rgba(128,128,128,0.4);
+      cursor: pointer;
+      pointer-events: auto;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+    .cp-float {
+      display: none; position: fixed; z-index: 99999;
+      background: var(--bg1); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      min-width: 200px;
+      flex-direction: column; gap: 8px;
+    }
+    .cp-float.cp-show { display: flex; }
+    .cp-float-preview {
+      height: 32px; border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+    .cp-float-hex {
+      padding: 5px 8px; border: 1px solid var(--border);
+      border-radius: var(--r); background: var(--bg2);
+      color: var(--txt0); font-size: 13px;
+      font-family: var(--font-mono); outline: none;
+      width: 100%; box-sizing: border-box;
+    }
+    .cp-float-hex:focus { border-color: var(--blue); }
+    .cp-float-native { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; }
+    .cp-float-row { display: flex; gap: 6px; }
+    .cp-float-btn {
+      flex: 1; padding: 5px; border-radius: var(--r);
+      border: 1px solid var(--border); background: var(--bg3);
+      color: var(--txt0); font-size: 12px; cursor: pointer;
+    }
+    .cp-float-ok { border-color: var(--blue); color: var(--blue); }
+    .cp-float-btn:hover { background: var(--bg2); }
+
+    /* ─── Dirty file dot ─────────────────────────────────────────── */
+    .dirty-dot {
+      font-size: 8px; color: var(--blue); margin-left: 4px;
+      vertical-align: middle; opacity: 0.8;
+    }
+    .fs-save-btn {
+      padding: 2px 8px; border: 1px solid var(--border);
+      border-radius: var(--r); background: transparent;
+      color: var(--txt1); font-size: 11px; cursor: pointer;
+      white-space: nowrap;
+    }
+    .fs-save-btn:hover { color: var(--txt0); border-color: var(--blue); }
+
     /* ─── Minimap ───────────────────────────────────────────────── */
     .minimap-wrap {
       display: none; /* hidden until setting enabled */
@@ -2062,6 +2146,7 @@
       <div class="stg-group-title">Keyboard Shortcuts</div>
       <div class="stg-row">
         <div style="display:flex;flex-wrap:wrap;gap:6px;font-size:11px;color:var(--txt1);line-height:2">
+          <span><kbd>Ctrl+S</kbd> Save to disk</span>
           <span><kbd>Alt+Shift+F</kbd> Format code</span>
           <span><kbd>Ctrl+F</kbd> Find</span>
           <span><kbd>Ctrl+H</kbd> Find &amp; Replace</span>
@@ -2074,7 +2159,8 @@
           <span><kbd>Space</kbd> Pause/Resume</span>
           <span><kbd>R</kbd> Restart typewriter</span>
           <span><kbd>F11</kbd> Fullscreen</span>
-          <span><kbd>Tab</kbd> Indent</span>
+          <span><kbd>Tab</kbd> Emmet / indent</span>
+          <span><kbd>Shift+Tab</kbd> Dedent</span>
           <span><kbd>Alt+Click</kbd> Add cursor</span>
           <span><kbd>Escape</kbd> Clear cursors</span>
         </div>
@@ -2110,6 +2196,8 @@
 <script src="src/snippets.js"></script>
 <script src="src/autocomplete.js"></script>
 <script src="src/squiggles.js"></script>
+<script src="src/bracket-colors.js"></script>
+<script src="src/color-picker.js"></script>
 <script src="src/command-palette.js"></script>
 <script src="src/global-search.js"></script>
 <script src="src/minimap.js"></script>

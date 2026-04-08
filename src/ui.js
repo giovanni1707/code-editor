@@ -163,6 +163,18 @@ function wireKeyboard() {
     if (ctrl && e.shiftKey && e.key === 'T') { e.preventDefault(); toggleTheme(); return; }
     if (e.key === 'F11')    { e.preventDefault(); toggleFullscreen(); return; }
 
+    // Ctrl+S / Ctrl+Shift+S — save (handled by explorer.js fsSaveAll if folder open)
+    if (ctrl && e.key === 's') {
+      e.preventDefault();
+      if (typeof fsSaveAll === 'function' && typeof _fsDirHandle !== 'undefined' && _fsDirHandle) {
+        fsSaveAll();
+      } else {
+        // No folder open: localStorage auto-saves, just show confirmation
+        toast('Auto-saved to localStorage', 1500);
+      }
+      return;
+    }
+
     // Ctrl+` — toggle active panel's console
     if (ctrl && e.key === '`') {
       e.preventDefault();
@@ -218,25 +230,7 @@ function wireKeyboard() {
         return;
       }
     }
-
-    // Tab → N spaces (configurable) inside any code textarea
-    if (e.key === 'Tab' && inTA) {
-      e.preventDefault();
-      const ta     = document.activeElement;
-      const spaces = ' '.repeat(state.settings.tabSize || 2);
-      const s      = ta.selectionStart;
-      const end    = ta.selectionEnd;
-      ta.value  = ta.value.slice(0, s) + spaces + ta.value.slice(end);
-      ta.selectionStart = ta.selectionEnd = s + spaces.length;
-
-      ['left', 'right'].forEach(side => {
-        Object.entries(tabsFor(side)).forEach(([lang, t]) => {
-          if (t.ta === ta) {
-            refreshHL(t.ta, t.hl, lang);
-            updateGutter(t.ta, t.gutter);
-          }
-        });
-      });
-    }
+    // Note: Tab key in textareas is handled entirely by wireAutoClose (autoclose.js)
+    // which supports Emmet, CSS shortcuts, block indent/dedent, and tab-size setting.
   });
 }
