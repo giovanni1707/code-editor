@@ -11,8 +11,8 @@
 ════════════════════════════════════════════════════════════════ */
 function switchTab(side, lang) {
   state.activeTab[side] = lang;
+  // Mutating state.session triggers auto-save via reactive session effect
   state.session.activeTab[side] = lang;
-  saveSession();
   const tabs = tabsFor(side);
 
   Object.entries(tabs).forEach(([l, t]) => {
@@ -22,10 +22,6 @@ function switchTab(side, lang) {
   const mode = state.panelMode[side];
   if (mode === 'edit' || mode === 'live') {
     showEditorSurfaces(side, lang);
-  }
-
-  if (side === 'left') {
-    el.sbFileName.textContent = `index.${LANG_META[lang].ext}`;
   }
 
   const t = tabs[lang];
@@ -59,8 +55,8 @@ function setPanelMode(side, mode) {
   stopTw(side);
   removeDynStyles(side);
   state.panelMode[side] = mode;
+  // Mutating state.session triggers auto-save via reactive session effect
   state.session.panelMode[side] = mode;
-  saveSession();
 
   const btns = modeBtns(side);
   btns.forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
@@ -164,11 +160,9 @@ function wirePanelActions(side) {
   const clearBtn = side === 'left' ? el.clearBtnL   : el.clearBtnR;
 
   lineBtn.addEventListener('click', () => {
+    // Mutating lineNums triggers reactive effects: buttons update + settings auto-save
     state.settings.lineNums = !state.settings.lineNums;
-    el.lineNumBtnL.classList.toggle('active', state.settings.lineNums);
-    el.lineNumBtnR.classList.toggle('active', state.settings.lineNums);
     updateAllGutters();
-    saveSettings();
   });
 
   copyBtn.addEventListener('click',  () => copyActive(side));
@@ -181,15 +175,19 @@ function wirePanelActions(side) {
 const LAYOUTS = ['split', 'right-full', 'left-full'];
 
 function applyLayout(layout) {
+  // Mutating state.layout triggers reactive effects:
+  //   - layout button text/title and status-bar text auto-update
+  //   - session auto-saves
   state.layout = layout;
+  state.session.layout = layout;
 
   const isSplit = layout === 'split';
   const isRF    = layout === 'right-full';
   const isLF    = layout === 'left-full';
 
-  el.colLeft.style.display   = isRF  ? 'none' : '';
-  el.colRight.style.display  = isLF  ? 'none' : '';
-  el.vResizer.style.display  = isSplit ? '' : 'none';
+  el.colLeft.style.display  = isRF    ? 'none' : '';
+  el.colRight.style.display = isLF    ? 'none' : '';
+  el.vResizer.style.display = isSplit ? ''     : 'none';
 
   // Reset flex widths when returning to split
   if (isSplit) {
@@ -200,21 +198,6 @@ function applyLayout(layout) {
   } else {
     el.colLeft.style.flex = '1';
   }
-
-  // Update button icon
-  el.layoutBtn.textContent = layout === 'split'       ? '⊟'
-                           : layout === 'right-full'  ? '▷'
-                           :                            '◁';
-  el.layoutBtn.title = layout === 'split'      ? 'Right panel full (Ctrl+\\)'
-                     : layout === 'right-full' ? 'Left panel full (Ctrl+\\)'
-                     :                           'Split view (Ctrl+\\)';
-
-  el.sbLayout.textContent = layout === 'split' ? 'SPLIT'
-                          : layout === 'right-full' ? 'RIGHT'
-                          : 'LEFT';
-  state.session.layout = layout;
-  saveSettings();
-  saveSession();
 }
 
 function cycleLayout() {
@@ -268,8 +251,8 @@ function initResizer() {
     el.vResizer.classList.remove('active');
     document.body.style.cursor = document.body.style.userSelect = '';
     _shieldOff();
+    // Mutating state.session triggers auto-save via reactive session effect
     state.session.splitPct = _vPct;
-    saveSession();
   });
 
   // ── Internal horizontal resizer per panel (for live-split) ───
@@ -316,6 +299,7 @@ function _initHResizer(side, resizer, wrap) {
     const editorPane = wrap.querySelector('.panel-editor-pane');
     const total = wrap.getBoundingClientRect().width;
     const w = editorPane.getBoundingClientRect().width;
-    if (total > 0) { state.session.livePaneW[side] = w / total * 100; saveSession(); }
+    // Mutating state.session triggers auto-save via reactive session effect
+    if (total > 0) { state.session.livePaneW[side] = w / total * 100; }
   });
 }

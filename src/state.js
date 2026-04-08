@@ -52,7 +52,7 @@ function mkTw() {
 }
 
 /* ── Application state ───────────────────────────────────────── */
-const state = {
+const state = ReactiveUtils.state({
   /* project: files and folders keyed by id */
   project: {
     files:   {},  // { [id]: { id, name, content, parentId } }
@@ -102,7 +102,7 @@ const state = {
       right: { html: null, css: null, js: null },
     },
   },
-};
+});
 
 /* ── Settings persistence ────────────────────────────────────── */
 function loadSettings() {
@@ -221,4 +221,70 @@ function loadSession() {
 // speed 1 → ~180 ms/char,  speed 10 → ~7 ms/char  (exponential)
 function speedMs() {
   return Math.round(180 / Math.pow(state.settings.speed, 1.38));
+}
+
+/* ── Reactive effects — wired after init() in app.js ────────── */
+function setupReactivity() {
+  const { effect } = ReactiveUtils;
+
+  // ── Auto-persist settings whenever any setting changes ───────
+  effect(() => {
+    const s = state.settings;
+    // Access each property so the effect tracks all of them
+    const _snap = s.theme + s.fontSize + s.lineNums + s.wordWrap +
+                  s.autoPlay + s.semiPause + s.speed;
+    saveSettings();
+  });
+
+  // ── Auto-persist session whenever any session property changes
+  effect(() => {
+    // Deep-track session by serialising it
+    JSON.stringify(ReactiveUtils.toRaw(state.session));
+    saveSession();
+  });
+
+  // ── Speed display: input + numeric label ─────────────────────
+  effect(() => {
+    const speed = state.settings.speed;
+    if (el.speedNum)   el.speedNum.textContent = speed;
+    if (el.speedRange) el.speedRange.value     = speed;
+  });
+
+  // ── Line-number buttons (both panels stay in sync) ───────────
+  effect(() => {
+    const on = state.settings.lineNums;
+    if (el.lineNumBtnL) el.lineNumBtnL.classList.toggle('active', on);
+    if (el.lineNumBtnR) el.lineNumBtnR.classList.toggle('active', on);
+  });
+
+  // ── Theme ────────────────────────────────────────────────────
+  effect(() => {
+    const dark = state.settings.theme === 'dark';
+    document.documentElement.classList.toggle('light', !dark);
+    document.getElementById('prism-dark').disabled  = !dark;
+    document.getElementById('prism-light').disabled =  dark;
+  });
+
+  // ── Layout: status-bar text + toolbar button ─────────────────
+  effect(() => {
+    const layout = state.layout;
+    if (el.sbLayout) {
+      el.sbLayout.textContent = layout === 'split'      ? 'SPLIT'
+                              : layout === 'right-full' ? 'RIGHT' : 'LEFT';
+    }
+    if (el.layoutBtn) {
+      el.layoutBtn.textContent = layout === 'split'      ? '⊟'
+                               : layout === 'right-full' ? '▷' : '◁';
+      el.layoutBtn.title = layout === 'split'      ? 'Right panel full (Ctrl+\\)'
+                         : layout === 'right-full' ? 'Left panel full (Ctrl+\\)'
+                         :                           'Split view (Ctrl+\\)';
+    }
+  });
+
+  // ── Status-bar filename (left panel's active file) ───────────
+  effect(() => {
+    const fid  = state.panelTabs.left.activeId;
+    const file = fid ? state.project.files[fid] : null;
+    if (el.sbFileName) el.sbFileName.textContent = file ? file.name : '—';
+  });
 }
