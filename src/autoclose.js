@@ -181,7 +181,7 @@ function _parseEmmetEl(abbr, idx = null, total = null) {
 /* ═══════════════════════════════════════════════════════════════
    EMMET — CSS property shortcuts
 ═══════════════════════════════════════════════════════════════ */
-const CSS_PROPS = {
+const _CSS_ABBR = {
   m:   'margin',       mt:  'margin-top',    mr:  'margin-right',
   mb:  'margin-bottom',ml:  'margin-left',
   p:   'padding',      pt:  'padding-top',   pr:  'padding-right',
@@ -221,7 +221,7 @@ function _tryEmmetCss(ta) {
   if (!match) return false;
 
   const propKey = match[1].toLowerCase();
-  const prop    = CSS_PROPS[propKey];
+  const prop    = _CSS_ABBR[propKey];
   if (!prop) return false;
 
   let rawVal = match[2] + (match[3] || '');
