@@ -30,6 +30,9 @@ function switchTab(side, lang) {
   t.ta.focus();
 
   if (mode === 'live') scheduleLivePreview(side);
+
+  // Update minimap for the now-visible surface
+  if (state.settings.minimap && t.surface) updateMinimapSurface(t.surface);
 }
 
 function showEditorSurfaces(side, lang) {
