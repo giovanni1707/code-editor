@@ -129,10 +129,13 @@ function wireToolbar() {
   el.themeBtn.addEventListener('click', toggleTheme);
   el.fsBtn.addEventListener('click', toggleFullscreen);
 
-  // Toolbar search button — opens Find & Replace on the active panel
+  // Track last focused panel so the toolbar button targets the right one
+  document.getElementById('colLeft')?.addEventListener('focusin',  () => { _lastFocusedSide = 'left';  });
+  document.getElementById('colRight')?.addEventListener('focusin', () => { _lastFocusedSide = 'right'; });
+
+  // Toolbar search button — opens Find & Replace on the last-focused panel
   document.getElementById('tbFindBtn')?.addEventListener('click', () => {
-    const side = document.activeElement?.closest('#colRight') ? 'right' : 'left';
-    toggleFind(side, 'replace');
+    toggleFind(_activeSide(), 'replace');
   });
 
   document.addEventListener('fullscreenchange', () => {
@@ -142,6 +145,17 @@ function wireToolbar() {
   // Per-panel mode buttons
   el.modeBtnsL.forEach(b => b.addEventListener('click', () => setPanelMode('left',  b.dataset.mode)));
   el.modeBtnsR.forEach(b => b.addEventListener('click', () => setPanelMode('right', b.dataset.mode)));
+}
+
+/* ── Track last-focused panel side ──────────────────────────── */
+let _lastFocusedSide = 'left';
+
+function _activeSide() {
+  // Prefer the element currently under focus; fall back to the last tracked side
+  const el = document.activeElement;
+  if (el?.closest('#colRight')) return 'right';
+  if (el?.closest('#colLeft'))  return 'left';
+  return _lastFocusedSide;
 }
 
 /* ── Keyboard shortcuts ──────────────────────────────────────── */
