@@ -108,6 +108,8 @@ function wireTextarea(side, lang, t) {
     if (state.panelMode[side] === 'live') scheduleLivePreview(side);
     else if (state.panelMode[side] === 'edit') scheduleConsoleRun(side);
     scheduleContentSave(side, lang, t.ta.value);
+    // Update minimap on content change
+    if (state.settings.minimap && t.surface) updateMinimapSurface(t.surface);
     // Mark file dirty immediately for disk-sync indicator
     if (typeof _fsMarkDirty === 'function') {
       const fid = state.panelTabs[side].activeId;
@@ -121,6 +123,9 @@ function wireTextarea(side, lang, t) {
   });
   t.ta.addEventListener('click',  () => updateStatus(t.ta));
   t.ta.addEventListener('keyup',  () => updateStatus(t.ta));
+
+  // Multi-cursor support (Alt+Click adds extra cursors)
+  wireMultiCursor(t.ta, side, lang);
 }
 
 /* ── Wire all textareas (called from init after buildTabRefs) ── */

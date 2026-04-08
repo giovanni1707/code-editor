@@ -75,6 +75,8 @@ const el = {
   stgWrap:         $('stgWrap'),
   stgAutoPlay:     $('stgAutoPlay'),
   stgSemiPause:    $('stgSemiPause'),
+  stgTabSize:      $('stgTabSize'),
+  stgMinimap:      $('stgMinimap'),
 
   toast: $('toast'),
 
@@ -130,7 +132,7 @@ const RIGHT_TABS = {
 };
 
 function buildTabRefs() {
-  // Left
+  // Left — surface is the .editor-surface wrapper (contains gutter + editor-inner)
   LEFT_TABS.html = { btn: $('LtabHtml'), surface: $('LsurfaceHtml'), gutter: $('LgutterHtml'), ta: $('LtaHtml'), hl: $('LhlHtml') };
   LEFT_TABS.css  = { btn: $('LtabCss'),  surface: $('LsurfaceCss'),  gutter: $('LgutterCss'),  ta: $('LtaCss'),  hl: $('LhlCss')  };
   LEFT_TABS.js   = { btn: $('LtabJs'),   surface: $('LsurfaceJs'),   gutter: $('LgutterJs'),   ta: $('LtaJs'),   hl: $('LhlJs')   };

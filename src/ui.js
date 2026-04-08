@@ -82,6 +82,14 @@ function wireSettings() {
     state.settings.semiPause = el.stgSemiPause.checked;
   });
 
+  el.stgTabSize.addEventListener('change', () => {
+    state.settings.tabSize = +el.stgTabSize.value;
+  });
+
+  el.stgMinimap.addEventListener('change', () => {
+    state.settings.minimap = el.stgMinimap.checked;
+  });
+
   document.getElementById('clearCacheBtn').addEventListener('click', () => {
     if (!confirm('Clear all saved data and reload?')) return;
     localStorage.clear();
@@ -185,12 +193,13 @@ function wireKeyboard() {
       return;
     }
 
-    // Escape — close overlays
+    // Escape — close overlays and clear multi-cursors
     if (e.key === 'Escape') {
       closeSettings();
       closeCommandPalette();
       closeGlobalSearch();
       ['left','right'].forEach(side => { if (FIND[side].open) closeFind(side); });
+      clearAllExtraCursors();
       return;
     }
 
@@ -210,14 +219,15 @@ function wireKeyboard() {
       }
     }
 
-    // Tab → 2 spaces inside any code textarea
+    // Tab → N spaces (configurable) inside any code textarea
     if (e.key === 'Tab' && inTA) {
       e.preventDefault();
-      const ta  = document.activeElement;
-      const s   = ta.selectionStart;
-      const end = ta.selectionEnd;
-      ta.value  = ta.value.slice(0, s) + '  ' + ta.value.slice(end);
-      ta.selectionStart = ta.selectionEnd = s + 2;
+      const ta     = document.activeElement;
+      const spaces = ' '.repeat(state.settings.tabSize || 2);
+      const s      = ta.selectionStart;
+      const end    = ta.selectionEnd;
+      ta.value  = ta.value.slice(0, s) + spaces + ta.value.slice(end);
+      ta.selectionStart = ta.selectionEnd = s + spaces.length;
 
       ['left', 'right'].forEach(side => {
         Object.entries(tabsFor(side)).forEach(([lang, t]) => {

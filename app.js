@@ -196,3 +196,6 @@ init();
 
 // Wire reactive effects after DOM refs and initial state are ready
 setupReactivity();
+
+// Apply minimap if it was previously enabled (effect fires immediately)
+// applyMinimap is also called by the reactive minimap effect above.

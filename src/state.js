@@ -85,6 +85,8 @@ const state = ReactiveUtils.state({
     autoPlay:   true,
     semiPause:  true,
     speed:      6,
+    tabSize:    2,    // indent width when Tab is pressed (2 or 4)
+    minimap:    false, // show minimap panel
   },
 
   /* session: panel UI state that persists between reloads */
@@ -233,7 +235,7 @@ function setupReactivity() {
     const s = state.settings;
     // Access each property so the effect tracks all of them
     const _snap = s.theme + s.fontSize + s.lineNums + s.wordWrap +
-                  s.autoPlay + s.semiPause + s.speed;
+                  s.autoPlay + s.semiPause + s.speed + s.tabSize + s.minimap;
     saveSettings();
   });
 
@@ -355,5 +357,19 @@ function setupReactivity() {
     if (el.stgWrap)      el.stgWrap.checked               = state.settings.wordWrap;
     if (el.stgAutoPlay)  el.stgAutoPlay.checked           = state.settings.autoPlay;
     if (el.stgSemiPause) el.stgSemiPause.checked          = state.settings.semiPause;
+    if (el.stgTabSize)   el.stgTabSize.value              = state.settings.tabSize;
+    if (el.stgMinimap)   el.stgMinimap.checked            = state.settings.minimap;
+  });
+
+  // ── Minimap visibility ───────────────────────────────────────
+  effect(() => {
+    const on = state.settings.minimap;
+    if (typeof applyMinimap === 'function') applyMinimap(on);
+  });
+
+  // ── Tab size: CSS variable for display + Tab key uses state ──
+  effect(() => {
+    const ts = state.settings.tabSize;
+    document.documentElement.style.setProperty('--editor-tab-size', ts);
   });
 }
