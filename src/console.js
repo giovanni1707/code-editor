@@ -275,6 +275,7 @@ function _wireOneSide(side) {
     dragging = true;
     startY = e.clientY;
     startH = refs.drawer.offsetHeight;
+    refs.drawer.style.transition = 'none'; // disable CSS transition during drag
     document.body.style.userSelect = 'none';
     _shieldOn('ns-resize');
     e.preventDefault();
@@ -288,6 +289,7 @@ function _wireOneSide(side) {
   document.addEventListener('mouseup', () => {
     if (!dragging) return;
     dragging = false;
+    refs.drawer.style.transition = ''; // restore CSS transition
     document.body.style.userSelect = '';
     _shieldOff();
     const h = refs.drawer.offsetHeight;
