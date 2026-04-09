@@ -133,9 +133,12 @@ function wireToolbar() {
   document.getElementById('colLeft')?.addEventListener('mousedown',  () => { _lastFocusedSide = 'left';  });
   document.getElementById('colRight')?.addEventListener('mousedown', () => { _lastFocusedSide = 'right'; });
 
-  // Toolbar search button — opens Find & Replace on the last-focused panel
-  document.getElementById('tbFindBtn')?.addEventListener('click', () => {
-    toggleFind(_activeSide(), 'replace');
+  // Per-panel find buttons
+  ['left', 'right'].forEach(side => {
+    const sfx = side === 'left' ? 'L' : 'R';
+    document.getElementById('findBtn' + sfx)?.addEventListener('click', () => {
+      toggleFind(side, 'find');
+    });
   });
 
   document.addEventListener('fullscreenchange', () => {

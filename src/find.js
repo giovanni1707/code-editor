@@ -252,6 +252,9 @@ function openFind(side, mode = 'find') {
   refs.queryInput.focus();
   refs.queryInput.select();
   if (f.query) _runFind(side);
+  // Highlight the panel's find button
+  const sfx = side === 'left' ? 'L' : 'R';
+  document.getElementById('findBtn' + sfx)?.classList.add('active');
 }
 
 function closeFind(side) {
@@ -265,6 +268,9 @@ function closeFind(side) {
   refs.queryInput.value = '';
   refs.count.textContent = '';
   refs.queryInput.classList.remove('find-no-match');
+  // Un-highlight the panel's find button
+  const sfx = side === 'left' ? 'L' : 'R';
+  document.getElementById('findBtn' + sfx)?.classList.remove('active');
 }
 
 function toggleFind(side, mode) {
