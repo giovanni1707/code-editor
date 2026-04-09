@@ -78,6 +78,10 @@ function setPanelMode(side, mode) {
   if (isTw) {
     col.classList.remove('live-split');
     col.classList.remove('mode-edit');
+    // Clear any inline flex set by the h-resizer
+    const _epTw = (side === 'left' ? el.liveWrapL : el.liveWrapR).querySelector('.panel-editor-pane');
+    if (_epTw) _epTw.style.flex = '';
+    lp.style.flex = '';
     hideEditorSurfaces(side);
     out.classList.add('visible');
     out.innerHTML = '';
@@ -98,6 +102,10 @@ function setPanelMode(side, mode) {
     // edit
     col.classList.remove('live-split');
     col.classList.add('mode-edit');
+    // Clear any inline flex set by the h-resizer so the editor pane fills its container
+    const _ep = (side === 'left' ? el.liveWrapL : el.liveWrapR).querySelector('.panel-editor-pane');
+    if (_ep) _ep.style.flex = '';
+    lp.style.flex = '';
     showEditorSurfaces(side, state.activeTab[side]);
     out.classList.remove('visible');
     lp.classList.remove('visible');
