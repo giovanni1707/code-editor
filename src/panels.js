@@ -185,6 +185,7 @@ function wirePanelActions(side) {
    LAYOUT  (split / left-full / right-full)
 ════════════════════════════════════════════════════════════════ */
 const LAYOUTS = ['split', 'right-full', 'left-full'];
+let _vPct = 50; // shared between applyLayout and initResizer
 
 function applyLayout(layout) {
   // Mutating state.layout triggers reactive effects:
@@ -201,10 +202,10 @@ function applyLayout(layout) {
   el.colRight.style.display = isLF    ? 'none' : '';
   el.vResizer.style.display = isSplit ? ''     : 'none';
 
-  // Reset flex widths when returning to split
+  // Set explicit flex basis in split mode so mousemove never switches sizing model
   if (isSplit) {
-    el.colLeft.style.flex  = '';
-    el.colRight.style.flex = '';
+    el.colLeft.style.flex  = `0 0 ${_vPct}%`;
+    el.colRight.style.flex = `0 0 ${100 - _vPct}%`;
   } else if (isRF) {
     el.colRight.style.flex = '1';
   } else {
@@ -215,6 +216,12 @@ function applyLayout(layout) {
 function cycleLayout() {
   const idx = LAYOUTS.indexOf(state.layout);
   applyLayout(LAYOUTS[(idx + 1) % LAYOUTS.length]);
+}
+
+function setSplitPct(pct) {
+  _vPct = pct;
+  el.colLeft.style.flex  = `0 0 ${pct}%`;
+  el.colRight.style.flex = `0 0 ${100 - pct}%`;
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -238,16 +245,14 @@ function _shieldOff() {
 
 function initResizer() {
   // ── Vertical resizer between left and right columns ──────────
-  let vDragging = false, vStartX = 0, vStartPct = 50;
-  let _vPct = 50;
+  let vDragging = false, vStartX = 0, vStartPct = 50, vTotalW = 0;
 
   el.vResizer.addEventListener('mousedown', e => {
-    // Total draggable width = colLeft + vResizer + colRight
-    const totalW = el.colLeft.offsetWidth + el.vResizer.offsetWidth + el.colRight.offsetWidth;
-
+    // Snapshot totalW once at mousedown — reusing it in mousemove prevents jump
+    vTotalW   = el.colLeft.offsetWidth + el.vResizer.offsetWidth + el.colRight.offsetWidth;
     vDragging = true;
     vStartX   = e.clientX;
-    vStartPct = totalW > 0 ? el.colLeft.offsetWidth / totalW * 100 : _vPct;
+    vStartPct = vTotalW > 0 ? el.colLeft.offsetWidth / vTotalW * 100 : _vPct;
 
     el.vResizer.classList.add('active');
     document.body.style.userSelect = 'none';
@@ -256,11 +261,9 @@ function initResizer() {
   });
 
   document.addEventListener('mousemove', e => {
-    if (!vDragging) return;
-    const totalW = el.colLeft.offsetWidth + el.vResizer.offsetWidth + el.colRight.offsetWidth;
-    if (totalW <= 0) return;
+    if (!vDragging || vTotalW <= 0) return;
 
-    const deltaPct = (e.clientX - vStartX) / totalW * 100;
+    const deltaPct = (e.clientX - vStartX) / vTotalW * 100;
     const pct = Math.max(15, Math.min(85, vStartPct + deltaPct));
     _vPct = pct;
     el.colLeft.style.flex  = `0 0 ${pct}%`;

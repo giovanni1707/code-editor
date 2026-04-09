@@ -105,11 +105,9 @@ function init() {
   // 12. Resizer
   initResizer();
 
-  // 13. Restore vertical split position
+  // 13. Restore vertical split position (also syncs _vPct used by initResizer)
   if (sess.layout === 'split' && sess.splitPct !== 50) {
-    const pct = sess.splitPct;
-    el.colLeft.style.flex  = `0 0 ${pct}%`;
-    el.colRight.style.flex = `0 0 ${100 - pct}%`;
+    setSplitPct(sess.splitPct);
   }
 
   // 14. Restore live h-resizer (preview pane widths)
