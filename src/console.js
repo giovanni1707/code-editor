@@ -156,6 +156,11 @@ function setConsoleSplit(side, on) {
   state.session.consoleSplit[side] = on;
   state.session.consoleOpen[side]  = c.open;
   // reactive session effect handles persistence
+  requestAnimationFrame(() => {
+    const lang = state.activeTab[side];
+    const t = tabsFor(side)[lang];
+    if (t && t.ta) { updateGutter(t.ta, t.gutter); refreshHL(t.ta, t.hl, lang); }
+  });
 }
 
 /* ── Public API ──────────────────────────────────────────────── */
@@ -179,6 +184,11 @@ function openConsole(side) {
   renderConsole(side);
   state.session.consoleOpen[side] = true;
   // reactive session effect handles persistence
+  requestAnimationFrame(() => {
+    const lang = state.activeTab[side];
+    const t = tabsFor(side)[lang];
+    if (t && t.ta) { updateGutter(t.ta, t.gutter); refreshHL(t.ta, t.hl, lang); }
+  });
 }
 
 function closeConsole(side) {
@@ -197,6 +207,11 @@ function closeConsole(side) {
   refs.toggleBtn.classList.remove('active');
   state.session.consoleOpen[side] = false;
   // reactive session effect handles persistence
+  requestAnimationFrame(() => {
+    const lang = state.activeTab[side];
+    const t = tabsFor(side)[lang];
+    if (t && t.ta) { updateGutter(t.ta, t.gutter); refreshHL(t.ta, t.hl, lang); }
+  });
 }
 
 function toggleConsole(side) {

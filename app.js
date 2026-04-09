@@ -150,9 +150,11 @@ function init() {
     }
   });
 
-  // 16. Highlight & gutter all tabs
-  refreshAllHL();
-  updateAllGutters();
+  // 16. Highlight & gutter all tabs — defer to after first paint so layout is complete
+  requestAnimationFrame(() => {
+    refreshAllHL();
+    updateAllGutters();
+  });
 
   // 17. Status bar
   // (sbFileName is driven by the reactive status-bar effect in setupReactivity)

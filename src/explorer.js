@@ -1010,21 +1010,24 @@ function wireSidebarResizer() {
   resizer.addEventListener('mousedown', e => {
     dragging = true;
     startX   = e.clientX;
-    startW   = sidebar.getBoundingClientRect().width;
+    startW   = sidebar.offsetWidth;   // offsetWidth: integer, no reflow
+    sidebar.style.transition = 'none'; // disable CSS transition during drag
     document.body.style.userSelect = 'none';
     _shieldOn('col-resize');
     e.preventDefault();
   });
   document.addEventListener('mousemove', e => {
     if (!dragging) return;
-    sidebar.style.width = Math.max(140, Math.min(480, startW + e.clientX - startX)) + 'px';
+    const w = Math.max(140, Math.min(480, startW + e.clientX - startX));
+    sidebar.style.width = w + 'px';
   });
   document.addEventListener('mouseup', () => {
     if (!dragging) return;
     dragging = false;
+    sidebar.style.transition = ''; // restore CSS transition
     document.body.style.userSelect = '';
     _shieldOff();
-    try { localStorage.setItem('ce:sidebarW', sidebar.getBoundingClientRect().width); } catch (_) {}
+    try { localStorage.setItem('ce:sidebarW', sidebar.offsetWidth); } catch (_) {}
   });
 }
 

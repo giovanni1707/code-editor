@@ -63,7 +63,9 @@ function updateGutter(ta, gutter) {
   gutter.style.display = '';
   const count = ta.value.split('\n').length;
   gutter.textContent = Array.from({ length: count }, (_, i) => i + 1).join('\n');
-  gutter.scrollTop   = ta.scrollTop;
+  // Match gutter height to textarea scrollable content so it never clips
+  gutter.style.minHeight = ta.scrollHeight + 'px';
+  gutter.scrollTop = ta.scrollTop;
 }
 
 function updateAllGutters() {
@@ -122,8 +124,9 @@ function wireTextarea(side, lang, t) {
     }
   });
   t.ta.addEventListener('scroll', () => {
-    t.hl.scrollTop    = t.ta.scrollTop;
-    t.hl.scrollLeft   = t.ta.scrollLeft;
+    t.hl.scrollTop     = t.ta.scrollTop;
+    t.hl.scrollLeft    = t.ta.scrollLeft;
+    t.gutter.style.minHeight = t.ta.scrollHeight + 'px';
     t.gutter.scrollTop = t.ta.scrollTop;
   });
   t.ta.addEventListener('click',  () => updateStatus(t.ta));

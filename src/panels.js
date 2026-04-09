@@ -89,6 +89,11 @@ function setPanelMode(side, mode) {
     out.classList.remove('visible');
     lp.classList.add('visible');
     renderLivePreview(side);
+    requestAnimationFrame(() => {
+      const lang = state.activeTab[side];
+      const t = tabsFor(side)[lang];
+      if (t && t.ta) { updateGutter(t.ta, t.gutter); refreshHL(t.ta, t.hl, lang); }
+    });
   } else {
     // edit
     col.classList.remove('live-split');
@@ -97,6 +102,11 @@ function setPanelMode(side, mode) {
     out.classList.remove('visible');
     lp.classList.remove('visible');
     scheduleConsoleRun(side);
+    requestAnimationFrame(() => {
+      const lang = state.activeTab[side];
+      const t = tabsFor(side)[lang];
+      if (t && t.ta) { updateGutter(t.ta, t.gutter); refreshHL(t.ta, t.hl, lang); }
+    });
   }
 
   // Playback controls
@@ -228,37 +238,41 @@ function _shieldOff() {
 
 function initResizer() {
   // ── Vertical resizer between left and right columns ──────────
-  let vDragging = false;
+  let vDragging = false, vStartX = 0, vStartPct = 50;
+  let _vPct = 50;
+
   el.vResizer.addEventListener('mousedown', e => {
+    // Total draggable width = colLeft + vResizer + colRight
+    const totalW = el.colLeft.offsetWidth + el.vResizer.offsetWidth + el.colRight.offsetWidth;
+
     vDragging = true;
+    vStartX   = e.clientX;
+    vStartPct = totalW > 0 ? el.colLeft.offsetWidth / totalW * 100 : _vPct;
+
     el.vResizer.classList.add('active');
     document.body.style.userSelect = 'none';
     _shieldOn('col-resize');
     e.preventDefault();
   });
-  let _vPct = 50;
+
   document.addEventListener('mousemove', e => {
     if (!vDragging) return;
-    // Measure only the columns area (excludes sidebar) so the % is accurate
-    const sidebar   = document.getElementById('sidebar');
-    const main      = document.getElementById('main');
-    const mainRect  = main.getBoundingClientRect();
-    const sidebarW  = sidebar ? sidebar.getBoundingClientRect().width : 0;
-    const colsLeft  = mainRect.left + sidebarW;
-    const colsWidth = mainRect.width - sidebarW;
-    let pct = (e.clientX - colsLeft) / colsWidth * 100;
-    pct     = Math.max(15, Math.min(85, pct));
+    const totalW = el.colLeft.offsetWidth + el.vResizer.offsetWidth + el.colRight.offsetWidth;
+    if (totalW <= 0) return;
+
+    const deltaPct = (e.clientX - vStartX) / totalW * 100;
+    const pct = Math.max(15, Math.min(85, vStartPct + deltaPct));
     _vPct = pct;
     el.colLeft.style.flex  = `0 0 ${pct}%`;
     el.colRight.style.flex = `0 0 ${100 - pct}%`;
   });
+
   document.addEventListener('mouseup', () => {
     if (!vDragging) return;
     vDragging = false;
     el.vResizer.classList.remove('active');
     document.body.style.cursor = document.body.style.userSelect = '';
     _shieldOff();
-    // Mutating state.session triggers auto-save via reactive session effect
     state.session.splitPct = _vPct;
   });
 
@@ -268,15 +282,16 @@ function initResizer() {
 }
 
 function _initHResizer(side, resizer, wrap) {
-  let dragging = false, startX, startEditorW, startPreviewW;
-  const lp = side === 'left' ? el.livePreviewL : el.livePreviewR;
+  let dragging = false, startX = 0, startPct = 50, totalW = 0;
+  const lp         = side === 'left' ? el.livePreviewL : el.livePreviewR;
+  const editorPane = wrap.querySelector('.panel-editor-pane'); // cached once
 
   resizer.addEventListener('mousedown', e => {
-    const editorPane = wrap.querySelector('.panel-editor-pane');
-    dragging      = true;
-    startX        = e.clientX;
-    startEditorW  = editorPane.getBoundingClientRect().width;
-    startPreviewW = lp.getBoundingClientRect().width;
+    totalW   = editorPane.offsetWidth + resizer.offsetWidth + lp.offsetWidth;
+    dragging = true;
+    startX   = e.clientX;
+    startPct = totalW > 0 ? editorPane.offsetWidth / totalW * 100 : 50;
+
     resizer.classList.add('active');
     document.body.style.userSelect = 'none';
     _shieldOn('col-resize');
@@ -284,16 +299,10 @@ function _initHResizer(side, resizer, wrap) {
   });
 
   document.addEventListener('mousemove', e => {
-    if (!dragging) return;
-    const delta = e.clientX - startX;
-    const total = startEditorW + startPreviewW;
-    const editorW = Math.max(120, Math.min(total - 120, startEditorW + delta));
-    // Use percentages so the split scales when sidebar/window is resized
-    const editorPct  = editorW / total * 100;
-    const previewPct = 100 - editorPct;
-    const editorPane = wrap.querySelector('.panel-editor-pane');
-    editorPane.style.flex = `0 0 ${editorPct}%`;
-    lp.style.flex         = `0 0 ${previewPct}%`;
+    if (!dragging || totalW <= 0) return;
+    const pct = Math.max(15, Math.min(85, startPct + (e.clientX - startX) / totalW * 100));
+    editorPane.style.flex = `0 0 ${pct}%`;
+    lp.style.flex         = `0 0 ${100 - pct}%`;
   });
 
   document.addEventListener('mouseup', () => {
@@ -302,11 +311,6 @@ function _initHResizer(side, resizer, wrap) {
     resizer.classList.remove('active');
     document.body.style.userSelect = '';
     _shieldOff();
-    // Save as percentage so it restores correctly at any window/sidebar width
-    const editorPane = wrap.querySelector('.panel-editor-pane');
-    const total = wrap.getBoundingClientRect().width;
-    const w = editorPane.getBoundingClientRect().width;
-    // Mutating state.session triggers auto-save via reactive session effect
-    if (total > 0) { state.session.livePaneW[side] = w / total * 100; }
+    if (totalW > 0) { state.session.livePaneW[side] = editorPane.offsetWidth / totalW * 100; }
   });
 }
