@@ -125,6 +125,32 @@ function _findProjectFile(ref, htmlVirtualPath, index) {
   return null;
 }
 
+/* ── Convert relative ES module imports to blob: URLs ────────── */
+// Recursively creates blob URLs for each imported project file so that
+// import { x } from './foo.js' works inside a blob: URL iframe.
+function _moduleToBlob(content, virtualPath, index, cache = new Map()) {
+  if (cache.has(virtualPath)) return cache.get(virtualPath);
+
+  // Rewrite relative import/export specifiers to blob: URLs
+  const rewritten = content.replace(
+    /\b(import|export)\b([\s\S]*?)\bfrom\s*(['"])(\.{1,2}\/[^'"]+)\3/g,
+    (match, kw, middle, q, specifier) => {
+      const resolved = _resolvePath(virtualPath, specifier);
+      const file = index.get(resolved) ||
+        // fallback: strip leading segments
+        (() => { const p = resolved.split('/'); for (let i=1;i<p.length;i++) { const f=index.get(p.slice(i).join('/')); if(f) return f; } return null; })();
+      if (!file) return match;
+      const depContent = _moduleToBlob(file.content || '', _virtualPath(file), index, cache);
+      const depBlob = new Blob([depContent], { type: 'application/javascript' });
+      const depUrl  = URL.createObjectURL(depBlob);
+      return `${kw}${middle}from ${q}${depUrl}${q}`;
+    }
+  );
+
+  cache.set(virtualPath, rewritten);
+  return rewritten;
+}
+
 /* ── Inline all resolvable <link> and <script src> in HTML ───── */
 function _inlineAssets(html, htmlVirtualPath) {
   const index = _buildPathIndex();
@@ -152,13 +178,16 @@ function _inlineAssets(html, htmlVirtualPath) {
       if (!m) return match;
       const file = _findProjectFile(m[1], htmlVirtualPath, index);
       if (!file) return match;
-      // Drop src attribute, keep others (e.g. defer, async — but not type="module"
-      // since inlined scripts can't be modules)
+      // Drop only the src attribute; preserve type="module" and all other attrs
       const otherAttrs = attrs
         .replace(/\bsrc=["'][^"']+["']/i, '')
-        .replace(/\btype=["']module["']/i, '')
         .trim();
-      return `<script${otherAttrs ? ' ' + otherAttrs : ''}>/* inlined: ${m[1]} */\n${file.content || ''}\n\x3C/script>`;
+      const isModule = /\btype=["']module["']/i.test(attrs);
+      // For module scripts, rewrite relative imports to blob: URLs so they resolve
+      const fileContent = isModule
+        ? _moduleToBlob(file.content || '', _virtualPath(file), index, new Map())
+        : (file.content || '');
+      return `<script${otherAttrs ? ' ' + otherAttrs : ''}>/* inlined: ${m[1]} */\n${fileContent}\n\x3C/script>`;
     }
   );
 
@@ -324,12 +353,31 @@ function buildLiveDoc(side) {
     if (css && !src.html) doc = replaceCI(doc, '</head>', `<style>\n${css}\n</style>\n</head>`);
 
     // Inject optional JS pane content before </body>
-    if (js && !src.html) doc = replaceCI(doc, '</body>',
-      `<script>\ntry{\n${js}\n}catch(e){window.__ceLog('error',[e.toString()]);}\n\x3C/script>\n</body>`);
+    if (js && !src.html) {
+      const _isModule = /^\s*(import\s|export\s|export\s*default)/m.test(js);
+      const _tag = _isModule
+        ? `<script type="module">\n${js}\n\x3C/script>`
+        : `<script>\ntry{\n${js}\n}catch(e){window.__ceLog('error',[e.toString()]);}\n\x3C/script>`;
+      doc = replaceCI(doc, '</body>', `${_tag}\n</body>`);
+    }
     return doc;
   }
 
   const finalBridge = bridge;
+
+  // Detect ES module syntax — import/export at the top level require type="module"
+  const isModule = /^\s*(import\s|export\s|export\s*default)/m.test(js);
+  let jsContent = js;
+  if (isModule) {
+    // Rewrite relative imports to blob: URLs so they resolve inside the blob: iframe
+    const activeId = state.panelTabs[side]?.activeId;
+    const activeFile = activeId ? state.project.files[activeId] : null;
+    const vPath = activeFile ? _virtualPath(activeFile) : 'index.js';
+    jsContent = _moduleToBlob(js, vPath, _buildPathIndex(), new Map());
+  }
+  const scriptTag = isModule
+    ? `<script type="module">\n${jsContent}\n\x3C/script>`
+    : `<script>\ntry {\n${js}\n} catch(e) {\n  window.__ceLog('error', [e.toString()]);\n}\n\x3C/script>`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -347,13 +395,7 @@ function buildLiveDoc(side) {
 </head>
 <body>
   ${html}
-  <script>
-try {
-${js}
-} catch(e) {
-  window.__ceLog('error', [e.toString()]);
-}
-  \x3C/script>
+  ${scriptTag}
 </body>
 </html>`;
 }
@@ -375,7 +417,8 @@ function renderLivePreview(side) {
 }
 
 /* ── Hidden console iframes (recreated each run) ─────────────── */
-const _consoleFrames = {};
+const _consoleFrames    = {};
+const _consoleBlobUrls  = {};
 
 function runConsoleOnly(side) {
   clearConsole(side);
@@ -384,14 +427,23 @@ function runConsoleOnly(side) {
   const old = _consoleFrames[side];
   if (old) old.remove();
 
+  // Revoke previous blob URL
+  if (_consoleBlobUrls[side]) {
+    URL.revokeObjectURL(_consoleBlobUrls[side]);
+    _consoleBlobUrls[side] = null;
+  }
+
   const f = document.createElement('iframe');
   f.style.cssText = 'position:absolute;width:0;height:0;border:0;visibility:hidden;pointer-events:none;';
   document.body.appendChild(f);
   _consoleFrames[side] = f;
 
-  // Use srcdoc — synchronous, no blob URL race, no revoke needed.
-  // The frame is unsandboxed so window.parent.postMessage works.
-  f.srcdoc = buildLiveDoc(side);
+  // Use a blob URL instead of srcdoc so the iframe gets a blob: origin,
+  // which allows <script type="module"> and ES import statements to work.
+  const blob = new Blob([buildLiveDoc(side)], { type: 'text/html' });
+  const url  = URL.createObjectURL(blob);
+  _consoleBlobUrls[side] = url;
+  f.src = url;
 }
 
 const _liveDebounce    = { left: null, right: null };
