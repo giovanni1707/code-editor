@@ -293,15 +293,18 @@ function initResizer() {
 }
 
 function _initHResizer(side, resizer, wrap) {
-  let dragging = false, startX = 0, startPct = 50, totalW = 0;
+  let dragging = false, startX = 0, startPct = 50, totalW = 0, minEditorPx = 0;
   const lp         = side === 'left' ? el.livePreviewL : el.livePreviewR;
   const editorPane = wrap.querySelector('.panel-editor-pane'); // cached once
+  const tabsEnd    = wrap.querySelector('.col-tabs-end');      // cached once
 
   resizer.addEventListener('mousedown', e => {
     totalW   = editorPane.offsetWidth + resizer.offsetWidth + lp.offsetWidth;
     dragging = true;
     startX   = e.clientX;
     startPct = totalW > 0 ? editorPane.offsetWidth / totalW * 100 : 50;
+    // Snap the minimum to the natural width of the controls strip so it's never clipped
+    minEditorPx = tabsEnd ? tabsEnd.offsetWidth + 8 : 200;
 
     resizer.classList.add('active');
     document.body.style.userSelect = 'none';
@@ -311,7 +314,8 @@ function _initHResizer(side, resizer, wrap) {
 
   document.addEventListener('mousemove', e => {
     if (!dragging || totalW <= 0) return;
-    const pct = Math.max(15, Math.min(85, startPct + (e.clientX - startX) / totalW * 100));
+    const minPct = minEditorPx / totalW * 100;
+    const pct = Math.max(minPct, Math.min(85, startPct + (e.clientX - startX) / totalW * 100));
     editorPane.style.flex = `0 0 ${pct}%`;
     lp.style.flex         = `0 0 ${100 - pct}%`;
   });
