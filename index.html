@@ -394,12 +394,15 @@
     textarea.code-ta {
       position: absolute; inset: 0;
       width: 100%; height: 100%;
+      box-sizing: border-box;
       border: none; outline: none; resize: none;
       font-family: var(--font-mono);
       font-size: var(--editor-font-size, 13px);
       line-height: var(--editor-line-height, 22px);
       padding: 14px;
       tab-size: var(--editor-tab-size, 2);
+      white-space: pre;
+      word-wrap: normal;
       background: transparent;
       color: transparent;
       caret-color: var(--caret);
@@ -423,16 +426,19 @@
 
     pre.hl-layer {
       position: absolute; inset: 0;
+      box-sizing: border-box;
       /* Layout — never let Prism theme override these */
       font-family: var(--font-mono) !important;
       font-size: var(--editor-font-size, 13px) !important;
       line-height: var(--editor-line-height, 22px) !important;
       padding: 14px !important;
-      white-space: pre-wrap !important;
-      word-wrap: break-word;
+      white-space: pre !important;
+      word-wrap: normal !important;
       pointer-events: none;
       z-index: 1;
-      overflow: hidden;
+      /* overflow: scroll so scrollTop/scrollLeft assignments work, but hide the bars */
+      overflow: scroll !important;
+      scrollbar-width: none !important;
       margin: 0 !important;
       tab-size: var(--editor-tab-size, 2);
       border-radius: 0 !important;
@@ -441,6 +447,7 @@
       /* Background matches the editor pane — Prism theme colour is allowed through */
       background: var(--bg0) !important;
     }
+    pre.hl-layer::-webkit-scrollbar { display: none !important; }
     /* Strip Prism's structural overrides from the code element
        but let Prism's TOKEN colours and the base text colour come through */
     pre.hl-layer > code {
@@ -984,6 +991,8 @@
       transition: all var(--speed);
     }
     .cn-action:hover { background: var(--bg3); color: var(--txt0); }
+    .cn-action.active { background: var(--red); border-color: var(--red); color: #fff; }
+    .cn-action.active:hover { opacity: .85; }
     .console-list {
       flex: 1;
       overflow-y: auto;
@@ -1867,6 +1876,7 @@
           <button class="cn-filter error"  data-filter="error" data-side-filter="left">Error</button>
           <button class="cn-filter"        data-filter="info"  data-side-filter="left">Info</button>
           <span class="cn-spacer"></span>
+          <button class="cn-action" id="cnSideMuteBtnL" title="Mute console">🔇</button>
           <button class="cn-action" id="cnSideClearBtnL">Clear</button>
           <button class="cn-action" id="cnSideCloseBtnL" title="Close side console">✕</button>
         </div>
@@ -1888,6 +1898,7 @@
         <button class="cn-filter error"  data-filter="error">Error</button>
         <button class="cn-filter"        data-filter="info">Info</button>
         <span class="cn-spacer"></span>
+        <button class="cn-action" id="consoleMuteBtnL" title="Mute console">🔇</button>
         <button class="cn-action" id="consoleClearBtnL">Clear</button>
         <button class="cn-action" id="consoleSplitBtnL" title="Split console panel">⊞ Split</button>
         <button class="cn-action" id="consoleCloseBtnL">✕</button>
@@ -2003,6 +2014,7 @@
           <button class="cn-filter error"  data-filter="error" data-side-filter="right">Error</button>
           <button class="cn-filter"        data-filter="info"  data-side-filter="right">Info</button>
           <span class="cn-spacer"></span>
+          <button class="cn-action" id="cnSideMuteBtnR" title="Mute console">🔇</button>
           <button class="cn-action" id="cnSideClearBtnR">Clear</button>
           <button class="cn-action" id="cnSideCloseBtnR" title="Close side console">✕</button>
         </div>
@@ -2024,6 +2036,7 @@
         <button class="cn-filter error"  data-filter="error">Error</button>
         <button class="cn-filter"        data-filter="info">Info</button>
         <span class="cn-spacer"></span>
+        <button class="cn-action" id="consoleMuteBtnR" title="Mute console">🔇</button>
         <button class="cn-action" id="consoleClearBtnR">Clear</button>
         <button class="cn-action" id="consoleSplitBtnR" title="Split console panel">⊞ Split</button>
         <button class="cn-action" id="consoleCloseBtnR">✕</button>

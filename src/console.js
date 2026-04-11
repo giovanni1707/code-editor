@@ -10,8 +10,8 @@
 
 /* ── Per-panel console state ─────────────────────────────────── */
 const CON = {
-  left:  { open: false, entries: [], filter: 'all', split: false, userClosed: false },
-  right: { open: false, entries: [], filter: 'all', split: false, userClosed: false },
+  left:  { open: false, entries: [], filter: 'all', split: false, userClosed: false, muted: false },
+  right: { open: false, entries: [], filter: 'all', split: false, userClosed: false, muted: false },
 };
 
 /* ── Helpers ─────────────────────────────────────────────────── */
@@ -163,8 +163,27 @@ function setConsoleSplit(side, on) {
   });
 }
 
+/* ── Mute ────────────────────────────────────────────────────── */
+function _updateMuteUI(side) {
+  const muted = CON[side].muted;
+  const sfx   = side === 'left' ? 'L' : 'R';
+  [document.getElementById('consoleMuteBtn'   + sfx),
+   document.getElementById('cnSideMuteBtn'    + sfx)].forEach(btn => {
+    if (!btn) return;
+    btn.textContent = muted ? '🔊' : '🔇';
+    btn.title       = muted ? 'Unmute console' : 'Mute console';
+    btn.classList.toggle('active', muted);
+  });
+}
+
+function toggleMute(side) {
+  CON[side].muted = !CON[side].muted;
+  _updateMuteUI(side);
+}
+
 /* ── Public API ──────────────────────────────────────────────── */
 function consoleReceive(side, level, args) {
+  if (CON[side].muted) return; // drop silently when muted
   CON[side].entries.push({ level, args });
   updateBadge(side);
   const c = CON[side];
@@ -237,11 +256,13 @@ function _wireOneSide(side) {
   const $id  = id => document.getElementById(id + sfx);
 
   $id('consoleToggleBtn').addEventListener('click', () => toggleConsole(side));
+  $id('consoleMuteBtn'  ).addEventListener('click', () => toggleMute(side));
   $id('consoleClearBtn' ).addEventListener('click', () => clearConsole(side));
   $id('consoleCloseBtn' ).addEventListener('click', () => closeConsole(side));
   $id('consoleSplitBtn' ).addEventListener('click', () => setConsoleSplit(side, !CON[side].split));
 
   // Side pane actions
+  $id('cnSideMuteBtn' ).addEventListener('click', () => toggleMute(side));
   $id('cnSideClearBtn').addEventListener('click', () => clearConsole(side));
   $id('cnSideCloseBtn').addEventListener('click', () => setConsoleSplit(side, false));
 
