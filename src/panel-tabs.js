@@ -11,6 +11,10 @@ function _tabBar(side) {
   return (side === 'left' ? el.colLeft : el.colRight).querySelector('.col-tabs');
 }
 
+function _tabsScroll(side) {
+  return document.getElementById(side === 'left' ? 'LtabScroll' : 'RtabScroll');
+}
+
 function _tabsEnd(side) {
   return _tabBar(side).querySelector('.col-tabs-end');
 }
@@ -145,14 +149,13 @@ function clearAllDirty() {
 
 /* ── Render the tab bar for one panel ────────────────────────── */
 function renderTabBar(side) {
-  const bar = _tabBar(side);
-  const end = _tabsEnd(side);
-  const pt  = state.panelTabs[side];
+  const scroll = _tabsScroll(side);
+  const pt     = state.panelTabs[side];
 
-  // Remove existing dynamic file tabs (keep .col-tabs-end)
-  bar.querySelectorAll('.file-tab').forEach(el2 => el2.remove());
+  // Remove existing dynamic file tabs from the scroll container
+  scroll.querySelectorAll('.file-tab').forEach(el2 => el2.remove());
 
-  // Insert file tabs before .col-tabs-end
+  // Insert file tabs into the scroll container
   pt.openIds.forEach(fid => {
     const file     = state.project.files[fid];
     if (!file) return;
@@ -199,7 +202,7 @@ function renderTabBar(side) {
 
     tab.addEventListener('dragend', () => {
       tab.classList.remove('tab-dragging');
-      bar.querySelectorAll('.file-tab').forEach(t => t.classList.remove('tab-drop-left', 'tab-drop-right'));
+      scroll.querySelectorAll('.file-tab').forEach(t => t.classList.remove('tab-drop-left', 'tab-drop-right'));
     });
 
     tab.addEventListener('dragover', e => {
@@ -241,7 +244,7 @@ function renderTabBar(side) {
       // openIds reassignment triggers reactive tab-bar + panelTabs effects
     });
 
-    bar.insertBefore(tab, end);
+    scroll.appendChild(tab);
   });
 
   // Show / hide empty state

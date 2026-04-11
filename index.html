@@ -275,11 +275,21 @@
       display: flex;
       align-items: center;
       padding: 0 4px;
-      gap: 2px;
+      gap: 0;
       flex-shrink: 0;
-      overflow: visible;
+      overflow: hidden; /* clip when narrow */
       position: relative;
       z-index: 20;
+    }
+
+    /* Scrollable file-tab strip — shrinks to make room for col-tabs-end */
+    .col-tabs-scroll {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      flex: 1 1 0;
+      min-width: 0;
+      overflow: hidden; /* file tabs clip silently */
     }
 
     .col-tab {
@@ -307,9 +317,8 @@
     .col-tab:hover .tab-close { opacity: 0.6; }
     .col-tab.active .tab-close { opacity: 0.5; }
 
-    /* Tab right-side controls */
+    /* Tab right-side controls — always pinned to the right, never shrinks */
     .col-tabs-end {
-      margin-left: auto;
       display: flex;
       align-items: center;
       gap: 4px;
@@ -1786,6 +1795,7 @@
           <div class="col-tab"        id="LtabHtml" data-lang="html"><span class="lang-dot" style="background:var(--red)"></span>HTML</div>
           <div class="col-tab"        id="LtabCss"  data-lang="css" ><span class="lang-dot" style="background:var(--blue)"></span>CSS</div>
           <div class="col-tab active" id="LtabJs"   data-lang="js"  ><span class="lang-dot" style="background:var(--yellow)"></span>JS</div>
+          <div class="col-tabs-scroll" id="LtabScroll"></div>
           <div class="col-tabs-end">
             <div class="col-tab-sep"></div>
             <button class="mode-btn active" data-mode="edit" title="Edit mode">✏ Edit</button>
@@ -1861,6 +1871,7 @@
           <span class="preview-url">HTML + CSS + JS</span>
           <button class="col-tab-btn" id="refreshBtnL" title="Refresh">↺</button>
           <button class="col-tab-btn" id="popoutBtnL"  title="Open in browser tab">⤢</button>
+          <button class="col-tab-btn" id="closeLiveL"  title="Close live preview">✕</button>
         </div>
         <iframe id="previewFrameL" title="Live preview left"></iframe>
       </div>
@@ -1924,6 +1935,7 @@
           <div class="col-tab"        id="RtabHtml" data-lang="html"><span class="lang-dot" style="background:var(--red)"></span>HTML</div>
           <div class="col-tab"        id="RtabCss"  data-lang="css" ><span class="lang-dot" style="background:var(--blue)"></span>CSS</div>
           <div class="col-tab active" id="RtabJs"   data-lang="js"  ><span class="lang-dot" style="background:var(--yellow)"></span>JS</div>
+          <div class="col-tabs-scroll" id="RtabScroll"></div>
           <div class="col-tabs-end">
             <div class="col-tab-sep"></div>
             <button class="mode-btn active" data-mode="edit" title="Edit mode">✏ Edit</button>
@@ -1999,6 +2011,7 @@
           <span class="preview-url">HTML + CSS + JS</span>
           <button class="col-tab-btn" id="refreshBtnR" title="Refresh">↺</button>
           <button class="col-tab-btn" id="popoutBtnR"  title="Open in browser tab">⤢</button>
+          <button class="col-tab-btn" id="closeLiveR"  title="Close live preview">✕</button>
         </div>
         <iframe id="previewFrameR" title="Live preview right"></iframe>
       </div>

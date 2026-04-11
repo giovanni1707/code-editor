@@ -477,4 +477,6 @@ function wireLivePreview() {
   el.refreshBtnR.addEventListener('click', () => renderLivePreview('right'));
   el.popoutBtnL.addEventListener('click',  () => _popout('left'));
   el.popoutBtnR.addEventListener('click',  () => _popout('right'));
+  if (el.closeLiveBtnL) el.closeLiveBtnL.addEventListener('click', () => setPanelMode('left',  'edit'));
+  if (el.closeLiveBtnR) el.closeLiveBtnR.addEventListener('click', () => setPanelMode('right', 'edit'));
 }
