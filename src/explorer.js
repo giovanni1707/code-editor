@@ -342,13 +342,20 @@ function _makeFileRow({ item: file, depth }) {
   // Right-click → context menu
   row.addEventListener('contextmenu', e => {
     e.preventDefault();
-    _showCtxMenu(e.clientX, e.clientY, [
+    const items = [
       { label: 'Open in Left Panel',  action: () => openFileInPanel('left',  file.id) },
       { label: 'Open in Right Panel', action: () => openFileInPanel('right', file.id) },
       '-',
-      { label: 'Rename', action: () => _startRename(row, file.id, nameEl, 'file') },
-      { label: 'Delete', action: () => _confirmDelete('file', file) },
-    ]);
+    ];
+    // Show save/revert options only when autosave is off and file has unsaved changes
+    if (!state.settings.autosave && isFileDirty(file.id)) {
+      items.push({ label: '💾 Save Changes', action: () => _saveFileChanges(file.id) });
+      items.push({ label: '↩ Revert Changes', action: () => _revertFileChanges(file.id, file.name) });
+      items.push('-');
+    }
+    items.push({ label: 'Rename', action: () => _startRename(row, file.id, nameEl, 'file') });
+    items.push({ label: 'Delete', action: () => _confirmDelete('file', file) });
+    _showCtxMenu(e.clientX, e.clientY, items);
   });
 
   return row;
@@ -464,6 +471,78 @@ function _startRename(row, id, nameEl, type) {
   input.addEventListener('keydown', e => {
     if (e.key === 'Enter')  { e.preventDefault(); commit(); }
     if (e.key === 'Escape') { input.remove(); nameEl.style.display = ''; }
+  });
+}
+
+/* ── Save / Revert unsaved changes ──────────────────────────── */
+function _saveFileChanges(fileId) {
+  // Flush textarea content → project state, then persist
+  flushAllPanels();
+  saveProject();
+  markTabDirty(fileId, false);
+  toast('Saved', 1500);
+}
+
+function _revertFileChanges(fileId, fileName) {
+  _showRevertModal(fileId, fileName);
+}
+
+function _showRevertModal(fileId, fileName) {
+  // Build overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay open';
+  overlay.style.zIndex = '9999';
+
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.style.width = '360px';
+  modal.innerHTML = `
+    <div class="modal-hd">
+      <span class="modal-title">↩ Revert Changes</span>
+    </div>
+    <p style="font-size:13px;color:var(--txt1);margin:0 0 20px">
+      Discard unsaved changes to <strong style="color:var(--txt0)">${fileName}</strong>?
+      This cannot be undone.
+    </p>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button id="_revertCancel"  style="padding:6px 16px;border:1px solid var(--border);border-radius:5px;background:var(--bg3);color:var(--txt0);font-size:12px;cursor:pointer">Cancel</button>
+      <button id="_revertConfirm" style="padding:6px 16px;border:1px solid var(--red);border-radius:5px;background:var(--red);color:#fff;font-size:12px;cursor:pointer;font-weight:600">Revert</button>
+    </div>
+  `;
+
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  const close = () => overlay.remove();
+
+  modal.querySelector('#_revertCancel').addEventListener('click', close);
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+
+  modal.querySelector('#_revertConfirm').addEventListener('click', () => {
+    close();
+    // Restore content from last saved project state
+    const saved = JSON.parse(localStorage.getItem('ce:project') || 'null');
+    const savedFile = saved && saved.files && saved.files[fileId];
+    const content = savedFile ? (savedFile.content || '') : '';
+
+    // Write back to state
+    if (state.project.files[fileId]) {
+      state.project.files[fileId].content = content;
+    }
+
+    // Reload into any panel surface that has this file active
+    ['left', 'right'].forEach(side => {
+      if (state.panelTabs[side].activeId === fileId) {
+        const lang = extToLang(state.project.files[fileId].name);
+        const t = tabsFor(side)[lang];
+        t.ta.value = content;
+        refreshHL(t.ta, t.hl, lang);
+        updateGutter(t.ta, t.gutter);
+      }
+    });
+
+    markTabDirty(fileId, false);
+    toast('Reverted', 1500);
   });
 }
 

@@ -81,7 +81,7 @@ const state = ReactiveUtils.state({
     theme:      'dark',
     fontSize:   13,
     lineNums:   true,
-    wordWrap:   true,
+    wordWrap:   false,
     autoPlay:   true,
     semiPause:  true,
     speed:      6,

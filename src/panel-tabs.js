@@ -147,6 +147,8 @@ function clearAllDirty() {
   ids.forEach(fid => markTabDirty(fid, false));
 }
 
+function isFileDirty(fileId) { return _dirtyFiles.has(fileId); }
+
 /* ── Render the tab bar for one panel ────────────────────────── */
 function renderTabBar(side) {
   const scroll = _tabsScroll(side);
