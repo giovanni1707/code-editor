@@ -86,8 +86,10 @@ function wireSettings() {
     state.settings.tabSize = +el.stgTabSize.value;
   });
 
-  el.stgMinimap.addEventListener('change', () => {
-    state.settings.minimap = el.stgMinimap.checked;
+  // Minimap removed from UI — no listener needed
+
+  document.getElementById('stgAutosave')?.addEventListener('change', e => {
+    state.settings.autosave = e.target.checked;
   });
 
   document.getElementById('clearCacheBtn').addEventListener('click', () => {
@@ -188,14 +190,17 @@ function wireKeyboard() {
     if (ctrl && e.shiftKey && e.key === 'T') { e.preventDefault(); toggleTheme(); return; }
     if (e.key === 'F11')    { e.preventDefault(); toggleFullscreen(); return; }
 
-    // Ctrl+S / Ctrl+Shift+S — save (handled by explorer.js fsSaveAll if folder open)
+    // Ctrl+S — manual save
     if (ctrl && e.key === 's') {
       e.preventDefault();
       if (typeof fsSaveAll === 'function' && typeof _fsDirHandle !== 'undefined' && _fsDirHandle) {
         fsSaveAll();
       } else {
-        // No folder open: localStorage auto-saves, just show confirmation
-        toast('Auto-saved to localStorage', 1500);
+        // Flush all panel textareas to localStorage immediately
+        if (typeof flushAllPanels === 'function') flushAllPanels();
+        saveProject();
+        if (typeof clearAllDirty === 'function') clearAllDirty();
+        toast('Saved', 1200);
       }
       return;
     }

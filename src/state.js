@@ -87,6 +87,7 @@ const state = ReactiveUtils.state({
     speed:      6,
     tabSize:    2,    // indent width when Tab is pressed (2 or 4)
     minimap:    false, // show minimap panel
+    autosave:   false, // auto-save on every keystroke (false = manual Ctrl+S only)
   },
 
   /* session: panel UI state that persists between reloads */
@@ -97,6 +98,7 @@ const state = ReactiveUtils.state({
     splitPct:        50,          // vertical resizer position (%)
     consoleSplit:    { left: false, right: false },
     consoleOpen:     { left: false, right: false },
+    consoleMuted:    { left: false, right: false },
     consoleHeight:   { left: 200,  right: 200  },
     consolePaneW:    { left: 320,  right: 320  },
     livePaneW:       { left: null, right: null },  // internal h-resizer split %
@@ -206,6 +208,7 @@ function loadSession() {
       if (s.splitPct != null) state.session.splitPct = s.splitPct;
       if (s.consoleSplit)  Object.assign(state.session.consoleSplit,  s.consoleSplit);
       if (s.consoleOpen)   Object.assign(state.session.consoleOpen,   s.consoleOpen);
+      if (s.consoleMuted)  Object.assign(state.session.consoleMuted,  s.consoleMuted);
       if (s.consoleHeight) Object.assign(state.session.consoleHeight, s.consoleHeight);
       if (s.consolePaneW)  Object.assign(state.session.consolePaneW,  s.consolePaneW);
       if (s.livePaneW)     Object.assign(state.session.livePaneW,     s.livePaneW);
@@ -235,7 +238,7 @@ function setupReactivity() {
     const s = state.settings;
     // Access each property so the effect tracks all of them
     const _snap = s.theme + s.fontSize + s.lineNums + s.wordWrap +
-                  s.autoPlay + s.semiPause + s.speed + s.tabSize + s.minimap;
+                  s.autoPlay + s.semiPause + s.speed + s.tabSize + s.minimap + s.autosave;
     saveSettings();
   });
 
@@ -358,14 +361,14 @@ function setupReactivity() {
     if (el.stgAutoPlay)  el.stgAutoPlay.checked           = state.settings.autoPlay;
     if (el.stgSemiPause) el.stgSemiPause.checked          = state.settings.semiPause;
     if (el.stgTabSize)   el.stgTabSize.value              = state.settings.tabSize;
-    if (el.stgMinimap)   el.stgMinimap.checked            = state.settings.minimap;
+    if (el.stgAutosave)  el.stgAutosave.checked           = state.settings.autosave;
   });
 
-  // ── Minimap visibility ───────────────────────────────────────
-  effect(() => {
-    const on = state.settings.minimap;
-    if (typeof applyMinimap === 'function') applyMinimap(on);
-  });
+  // ── Minimap disabled ─────────────────────────────────────────
+  // effect(() => {
+  //   const on = state.settings.minimap;
+  //   if (typeof applyMinimap === 'function') applyMinimap(on);
+  // });
 
   // ── Tab size: CSS variable for display + Tab key uses state ──
   effect(() => {

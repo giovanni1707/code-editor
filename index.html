@@ -370,7 +370,6 @@
     .line-gutter {
       width: var(--gutter-w);
       min-width: var(--gutter-w);
-      height: 100%;
       background: var(--bg1);
       color: var(--txt2);
       font-family: var(--font-mono);
@@ -385,6 +384,7 @@
       flex-shrink: 0;
       align-self: stretch;
       box-sizing: border-box;
+      will-change: transform;
     }
 
     .editor-inner {
@@ -436,22 +436,19 @@
       word-wrap: normal !important;
       pointer-events: none;
       z-index: 1;
-      /* overflow: scroll so scrollTop/scrollLeft assignments work, but hide the bars */
-      overflow: scroll !important;
-      scrollbar-width: none !important;
+      overflow: hidden !important;
       margin: 0 !important;
       tab-size: var(--editor-tab-size, 2);
       border-radius: 0 !important;
       border: none !important;
       box-shadow: none !important;
-      /* Background matches the editor pane — Prism theme colour is allowed through */
       background: var(--bg0) !important;
     }
-    pre.hl-layer::-webkit-scrollbar { display: none !important; }
     /* Strip Prism's structural overrides from the code element
        but let Prism's TOKEN colours and the base text colour come through */
     pre.hl-layer > code {
       display: block;
+      will-change: transform;
       background: transparent !important;
       font-size: inherit !important;
       font-family: inherit !important;
@@ -1367,6 +1364,11 @@
     .file-tab.tab-drop-right { box-shadow:  2px 0 0 var(--blue); }
 
     .file-tab-label { max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+    .tab-dirty-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--yellow);
+      flex-shrink: 0;
+    }
 
     .tab-x {
       font-size: 14px;
@@ -2104,10 +2106,10 @@
       </div>
       <div class="stg-row">
         <div class="stg-info">
-          <span class="stg-label">Minimap</span>
-          <span class="stg-desc">Show scrollable code overview on the right</span>
+          <span class="stg-label">Auto-Save</span>
+          <span class="stg-desc">Save automatically on every keystroke (off = Ctrl+S to save)</span>
         </div>
-        <label class="toggle"><input type="checkbox" id="stgMinimap" /><span class="toggle-track"></span></label>
+        <label class="toggle"><input type="checkbox" id="stgAutosave" /><span class="toggle-track"></span></label>
       </div>
     </div>
 

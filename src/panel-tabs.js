@@ -125,6 +125,24 @@ function _hideEmptyPanel(side) {
   if (empty) empty.style.display = 'none';
 }
 
+/* ── Dirty (unsaved) tab indicator ──────────────────────────── */
+const _dirtyFiles = new Set();
+
+function markTabDirty(fileId, dirty) {
+  if (dirty) _dirtyFiles.add(fileId);
+  else        _dirtyFiles.delete(fileId);
+  // Update dot in any tab currently showing this file
+  document.querySelectorAll(`.file-tab[data-fid="${fileId}"] .tab-dirty-dot`).forEach(dot => {
+    dot.style.display = dirty ? '' : 'none';
+  });
+}
+
+function clearAllDirty() {
+  const ids = [..._dirtyFiles];
+  _dirtyFiles.clear();
+  ids.forEach(fid => markTabDirty(fid, false));
+}
+
 /* ── Render the tab bar for one panel ────────────────────────── */
 function renderTabBar(side) {
   const bar = _tabBar(side);
@@ -141,9 +159,10 @@ function renderTabBar(side) {
     const isActive = fid === pt.activeId;
 
     const tab = document.createElement('div');
-    tab.className   = 'file-tab' + (isActive ? ' active' : '');
-    tab.dataset.id  = fid;
-    tab.draggable   = true;
+    tab.className      = 'file-tab' + (isActive ? ' active' : '');
+    tab.dataset.id     = fid;
+    tab.dataset.fid    = fid;
+    tab.draggable      = true;
 
     const dot = document.createElement('span');
     dot.className = 'lang-dot';
@@ -153,6 +172,11 @@ function renderTabBar(side) {
     label.className   = 'file-tab-label';
     label.textContent = file.name;
 
+    const dirtyDot = document.createElement('span');
+    dirtyDot.className    = 'tab-dirty-dot';
+    dirtyDot.title        = 'Unsaved changes — Ctrl+S to save';
+    dirtyDot.style.display = _dirtyFiles.has(fid) ? '' : 'none';
+
     const close = document.createElement('span');
     close.className   = 'tab-x';
     close.textContent = '×';
@@ -161,6 +185,7 @@ function renderTabBar(side) {
 
     tab.appendChild(dot);
     tab.appendChild(label);
+    tab.appendChild(dirtyDot);
     tab.appendChild(close);
     tab.addEventListener('click', () => openFileInPanel(side, fid));
 

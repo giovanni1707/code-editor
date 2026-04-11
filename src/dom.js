@@ -76,7 +76,7 @@ const el = {
   stgAutoPlay:     $('stgAutoPlay'),
   stgSemiPause:    $('stgSemiPause'),
   stgTabSize:      $('stgTabSize'),
-  stgMinimap:      $('stgMinimap'),
+  stgAutosave:     $('stgAutosave'),
 
   toast: $('toast'),
 

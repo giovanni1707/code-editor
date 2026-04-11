@@ -178,6 +178,7 @@ function _updateMuteUI(side) {
 
 function toggleMute(side) {
   CON[side].muted = !CON[side].muted;
+  state.session.consoleMuted[side] = CON[side].muted;
   _updateMuteUI(side);
 }
 

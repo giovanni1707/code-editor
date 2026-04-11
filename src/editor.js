@@ -39,13 +39,11 @@ function refreshHL(ta, hl, lang) {
   }
 
   hl.querySelector('code').innerHTML = Prism.highlight(ta.value, grammar, prismLang);
-  hl.scrollTop  = ta.scrollTop;
-  hl.scrollLeft = ta.scrollLeft;
+  const code = hl.querySelector('code');
+  code.style.transform = `translate(${-ta.scrollLeft}px, ${-ta.scrollTop}px)`;
 
   // Post-processing: bracket pair colorization
   applyBracketColors(hl);
-  // Post-processing: color swatches (runs async-safe, no DOM queries that block)
-  refreshColorSwatches(ta);
 }
 
 function refreshAllHL() {
@@ -62,10 +60,17 @@ function updateGutter(ta, gutter) {
   if (!state.settings.lineNums) { gutter.style.display = 'none'; return; }
   gutter.style.display = '';
   const count = ta.value.split('\n').length;
-  gutter.textContent = Array.from({ length: count }, (_, i) => i + 1).join('\n');
-  // Match gutter height to textarea scrollable content so it never clips
-  gutter.style.minHeight = ta.scrollHeight + 'px';
-  gutter.scrollTop = ta.scrollTop;
+  // Keep numbers in an inner span so we can translate inside the clipping gutter
+  let inner = gutter.querySelector('.gutter-inner');
+  if (!inner) {
+    inner = document.createElement('span');
+    inner.className = 'gutter-inner';
+    inner.style.cssText = 'display:block;will-change:transform;';
+    gutter.textContent = '';
+    gutter.appendChild(inner);
+  }
+  inner.textContent = Array.from({ length: count }, (_, i) => i + 1).join('\n');
+  inner.style.transform = `translateY(${-ta.scrollTop}px)`;
 }
 
 function updateAllGutters() {
@@ -114,20 +119,24 @@ function wireTextarea(side, lang, t) {
     updateStatus(t.ta);
     if (state.panelMode[side] === 'live') scheduleLivePreview(side);
     else if (state.panelMode[side] === 'edit') scheduleConsoleRun(side);
-    scheduleContentSave(side, lang, t.ta.value);
-    // Update minimap on content change
-    if (state.settings.minimap && t.surface) updateMinimapSurface(t.surface);
-    // Mark file dirty immediately for disk-sync indicator
+    if (state.settings.autosave) {
+      scheduleContentSave(side, lang, t.ta.value);
+    } else {
+      // Mark tab dirty so user knows unsaved changes exist
+      const fid = state.panelTabs[side].activeId;
+      if (fid) markTabDirty(fid, true);
+    }
+    // Mark file dirty for disk-sync indicator
     if (typeof _fsMarkDirty === 'function') {
       const fid = state.panelTabs[side].activeId;
       if (fid) _fsMarkDirty(fid);
     }
   });
   t.ta.addEventListener('scroll', () => {
-    t.hl.scrollTop     = t.ta.scrollTop;
-    t.hl.scrollLeft    = t.ta.scrollLeft;
-    t.gutter.style.minHeight = t.ta.scrollHeight + 'px';
-    t.gutter.scrollTop = t.ta.scrollTop;
+    const code = t.hl.querySelector('code');
+    if (code) code.style.transform = `translate(${-t.ta.scrollLeft}px, ${-t.ta.scrollTop}px)`;
+    const inner = t.gutter.querySelector('.gutter-inner');
+    if (inner) inner.style.transform = `translateY(${-t.ta.scrollTop}px)`;
   });
   t.ta.addEventListener('click',  () => updateStatus(t.ta));
   t.ta.addEventListener('keyup',  () => updateStatus(t.ta));

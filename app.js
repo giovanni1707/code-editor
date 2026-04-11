@@ -55,7 +55,7 @@ function init() {
   // 7. Wire all events
   wireAllTextareas();
   wireAllAutoClose();
-  wireAllColorPickers();
+  // wireAllColorPickers(); // color swatches disabled
   wireTabButtons('left');
   wireTabButtons('right');
   wirePanelActions('left');
@@ -137,6 +137,11 @@ function init() {
     const pw = sess.consolePaneW[side];
     if (pw) {
       (side === 'left' ? el.cnSidePaneL : el.cnSidePaneR).style.flex = `0 0 ${pw}px`;
+    }
+
+    if (sess.consoleMuted[side]) {
+      consoleState(side).muted = true;
+      _updateMuteUI(side);
     }
 
     if (sess.consoleSplit[side]) {
