@@ -183,8 +183,13 @@ function toggleMute(side) {
 }
 
 /* ── Public API ──────────────────────────────────────────────── */
+const _IGNORED_MESSAGES = [
+  '[Namespace Methods] Invalid component or $destroy not available',
+];
+
 function consoleReceive(side, level, args) {
   if (CON[side].muted) return; // drop silently when muted
+  if (args.length > 0 && typeof args[0] === 'string' && _IGNORED_MESSAGES.some(m => args[0].includes(m))) return;
   CON[side].entries.push({ level, args });
   updateBadge(side);
   const c = CON[side];
