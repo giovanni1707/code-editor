@@ -110,8 +110,9 @@ function init() {
     setSplitPct(sess.splitPct);
   }
 
-  // 14. Restore live h-resizer (preview pane widths)
+  // 14. Restore live h-resizer (preview pane widths) — only in live mode
   ['left', 'right'].forEach(side => {
+    if (sess.panelMode[side] !== 'live') return; // don't constrain editor pane in edit/raw mode
     const w = sess.livePaneW[side];
     if (!w) return;
     const wrap       = side === 'left' ? el.liveWrapL : el.liveWrapR;
