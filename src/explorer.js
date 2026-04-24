@@ -255,10 +255,29 @@ function _makeFolderRow({ item: folder, depth }) {
   row.addEventListener('dragstart', e => _onDragStart(e, folder.id, 'folder'));
   row.addEventListener('dragend',   _onDragEnd);
 
-  // Drop target (receive files/folders into this folder)
-  row.addEventListener('dragover',  e => _onDragOver(e, folder.id));
-  row.addEventListener('dragleave', _onDragLeave);
-  row.addEventListener('drop',      e => _onDrop(e, folder.id));
+  // Drop target (receive internal moves OR external files into this folder)
+  row.addEventListener('dragover', e => {
+    if (_dragId) { _onDragOver(e, folder.id); return; }
+    if (Array.from(e.dataTransfer.types || []).includes('Files')) {
+      e.preventDefault();
+      e.stopPropagation(); // don't bubble to sidebar ext handler
+      e.dataTransfer.dropEffect = 'copy';
+      row.classList.add('drag-over');
+    }
+  });
+  row.addEventListener('dragleave', e => {
+    _onDragLeave(e);
+  });
+  row.addEventListener('drop', e => {
+    if (_dragId) { _onDrop(e, folder.id); return; }
+    if (Array.from(e.dataTransfer.types || []).includes('Files')) {
+      e.stopPropagation();
+      row.classList.remove('drag-over');
+      const sidebar = document.getElementById('sidebar');
+      sidebar?.classList.remove('ext-drag-over');
+      _handleExternalDrop(e, sidebar, folder.id);
+    }
+  });
 
   // Click → toggle collapse
   row.addEventListener('click', e => {
@@ -1069,6 +1088,99 @@ async function importProject() {
   }
 }
 
+/* ════════════════════════════════════════════════════════════════
+   EXTERNAL DRAG-AND-DROP (files / folders from desktop / OS)
+════════════════════════════════════════════════════════════════ */
+
+/* Read a FileSystemEntry tree into state under a given parentId */
+async function _importEntry(entry, parentId) {
+  if (entry.isFile) {
+    if (_shouldSkipFile(entry.name)) return;
+    try {
+      const file = await new Promise((res, rej) => entry.file(res, rej));
+      const content = await file.text();
+      const id = uid();
+      state.project.files[id] = { id, name: entry.name, content, parentId };
+      if (_fsIsLinked()) {
+        // If a disk folder is open, write the file there too
+        try {
+          const dirHandle = await _getDirHandleForFolder(parentId);
+          const fh = await dirHandle.getFileHandle(entry.name, { create: true });
+          const w  = await fh.createWritable();
+          await w.write(content);
+          await w.close();
+          _fsHandles[id] = fh;
+        } catch (_) {}
+      }
+    } catch (_) {}
+  } else if (entry.isDirectory) {
+    if (_shouldSkipDir(entry.name)) return;
+    const folderId = uid();
+    state.project.folders[folderId] = { id: folderId, name: entry.name, parentId, collapsed: false };
+    if (_fsIsLinked()) {
+      try {
+        const dirHandle = await _getDirHandleForFolder(parentId);
+        await dirHandle.getDirectoryHandle(entry.name, { create: true });
+      } catch (_) {}
+    }
+    const reader = entry.createReader();
+    const readAll = () => new Promise((res, rej) => {
+      const all = [];
+      const batch = () => reader.readEntries(entries => {
+        if (!entries.length) return res(all);
+        all.push(...entries);
+        batch();
+      }, rej);
+      batch();
+    });
+    const children = await readAll();
+    for (const child of children) await _importEntry(child, folderId);
+  }
+}
+
+/* Determine target parentId from the drop point in the sidebar */
+function _dropTargetParentId(e) {
+  const itemEl = e.target.closest('.explorer-item');
+  if (!itemEl) return null; // dropped on empty space → root
+  const id = itemEl.dataset.id;
+  // If dropped on a folder row → use that folder as parent
+  if (itemEl.classList.contains('explorer-folder')) return id;
+  // Dropped on a file row → use its parent folder
+  const file = state.project.files[id];
+  return file ? (file.parentId ?? null) : null;
+}
+
+/* Handle an external drop event (DataTransfer contains real OS files) */
+async function _handleExternalDrop(e, sidebar, parentIdOverride) {
+  e.preventDefault();
+  if (sidebar) sidebar.classList.remove('ext-drag-over');
+
+  const items = Array.from(e.dataTransfer.items || []);
+  if (!items.length) return;
+
+  const entries = items
+    .filter(i => i.kind === 'file')
+    .map(i => i.webkitGetAsEntry ? i.webkitGetAsEntry() : null)
+    .filter(Boolean);
+
+  if (!entries.length) return;
+
+  const parentId = parentIdOverride !== undefined ? parentIdOverride : _dropTargetParentId(e);
+
+  // Expand the target folder so the user sees the new items
+  if (parentId && state.project.folders[parentId]) {
+    state.project.folders[parentId].collapsed = false;
+  }
+
+  toast('Importing…', 60000);
+  for (const entry of entries) await _importEntry(entry, parentId);
+
+  saveProject();
+  state.project._v++;
+  _renderSidebarTitle();
+  toast(`Imported ${entries.length} item${entries.length !== 1 ? 's' : ''}`, 2500);
+}
+
 /* ── Sidebar toggle ──────────────────────────────────────────── */
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
@@ -1160,6 +1272,44 @@ function wireExplorer() {
   fileList?.addEventListener('drop', e => {
     if (e.target.closest('.explorer-item')) return;
     _onDropRoot(e);
+  });
+
+  // ── External drag-and-drop from desktop / OS ────────────────
+  const sidebar = document.getElementById('sidebar');
+  let _extDragCounter = 0; // track nested dragenter/dragleave pairs
+
+  sidebar?.addEventListener('dragenter', e => {
+    if (_dragId) return; // internal drag — ignore
+    const hasFiles = Array.from(e.dataTransfer.types || []).includes('Files');
+    if (!hasFiles) return;
+    _extDragCounter++;
+    sidebar.classList.add('ext-drag-over');
+    e.preventDefault();
+  });
+
+  sidebar?.addEventListener('dragover', e => {
+    if (_dragId) return;
+    const hasFiles = Array.from(e.dataTransfer.types || []).includes('Files');
+    if (!hasFiles) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  });
+
+  sidebar?.addEventListener('dragleave', e => {
+    if (_dragId) return;
+    _extDragCounter--;
+    if (_extDragCounter <= 0) {
+      _extDragCounter = 0;
+      sidebar.classList.remove('ext-drag-over');
+    }
+  });
+
+  sidebar?.addEventListener('drop', e => {
+    if (_dragId) return; // internal reorder — already handled above
+    _extDragCounter = 0;
+    const hasFiles = Array.from(e.dataTransfer.types || []).includes('Files');
+    if (!hasFiles) return;
+    _handleExternalDrop(e, sidebar);
   });
 
   // Restore sidebar width + visibility

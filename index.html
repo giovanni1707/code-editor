@@ -1291,6 +1291,26 @@
     .explorer-item.dragging   { opacity: .4; }
     .explorer-item.drag-over  { background: var(--bg3); outline: 1px solid var(--blue); outline-offset: -1px; }
 
+    /* External file/folder drop onto sidebar */
+    #sidebar.ext-drag-over {
+      outline: 2px dashed var(--blue);
+      outline-offset: -3px;
+    }
+    #sidebar.ext-drag-over #sidebarFileList::after {
+      content: 'Drop files or folders here';
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: absolute;
+      inset: 0;
+      font-size: 12px;
+      color: var(--blue);
+      background: rgba(88,166,255,.06);
+      pointer-events: none;
+      border-radius: 4px;
+    }
+    #sidebarFileList { position: relative; }
+
     .folder-arrow {
       font-size: 8px;
       color: var(--txt2);
