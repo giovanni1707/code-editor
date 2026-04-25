@@ -89,6 +89,7 @@ const state = ReactiveUtils.state({
     minimap:      false, // show minimap panel
     autosave:     false, // auto-save on every keystroke (false = manual Ctrl+S only)
     autocomplete: true,  // show autocomplete dropdown while typing
+    squiggles:    true,  // show red wavy underlines on JS syntax errors
   },
 
   /* session: panel UI state that persists between reloads */
@@ -239,7 +240,7 @@ function setupReactivity() {
     const s = state.settings;
     // Access each property so the effect tracks all of them
     const _snap = s.theme + s.fontSize + s.lineNums + s.wordWrap +
-                  s.autoPlay + s.semiPause + s.speed + s.tabSize + s.minimap + s.autosave + s.autocomplete;
+                  s.autoPlay + s.semiPause + s.speed + s.tabSize + s.minimap + s.autosave + s.autocomplete + s.squiggles;
     saveSettings();
   });
 
@@ -365,6 +366,8 @@ function setupReactivity() {
     if (el.stgAutosave)      el.stgAutosave.checked       = state.settings.autosave;
     const acEl = document.getElementById('stgAutocomplete');
     if (acEl) acEl.checked = state.settings.autocomplete;
+    const sqEl = document.getElementById('stgSquiggles');
+    if (sqEl) sqEl.checked = state.settings.squiggles;
   });
 
   // ── Minimap disabled ─────────────────────────────────────────

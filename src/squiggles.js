@@ -204,6 +204,7 @@ function _wireOne(ta, side) {
   let _timer = null;
 
   function check() {
+    if (!state.settings.squiggles)  { _clearSquiggles(ta); return; }
     // Only lint real JS/TS files — not markdown, json, etc.
     if (!_activeFileIsJs(side)) { _clearSquiggles(ta); return; }
     const err = _checkSyntax(ta.value);
@@ -223,10 +224,18 @@ function _wireOne(ta, side) {
 
   ta.addEventListener('input',  schedule);
   ta.addEventListener('scroll', () => {
-    if (!_activeFileIsJs(side)) { _clearSquiggles(ta); return; }
+    if (!state.settings.squiggles || !_activeFileIsJs(side)) { _clearSquiggles(ta); return; }
     const err = _checkSyntax(ta.value);
     if (err && ta.value.trim()) _drawSquiggle(ta, err.line, err.message);
     else _clearSquiggles(ta);
+  });
+}
+
+/** Clear squiggles on every JS textarea (called when the setting is toggled off). */
+function clearAllSquiggles() {
+  ['left', 'right'].forEach(side => {
+    const t = tabsFor(side)['js'];
+    if (t && t.ta) _clearSquiggles(t.ta);
   });
 }
 

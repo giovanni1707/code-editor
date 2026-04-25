@@ -96,6 +96,11 @@ function wireSettings() {
     state.settings.autocomplete = e.target.checked;
   });
 
+  document.getElementById('stgSquiggles')?.addEventListener('change', e => {
+    state.settings.squiggles = e.target.checked;
+    if (!e.target.checked) clearAllSquiggles();
+  });
+
   document.getElementById('clearCacheBtn').addEventListener('click', () => {
     if (!confirm('Clear all saved data and reload?')) return;
     localStorage.clear();
