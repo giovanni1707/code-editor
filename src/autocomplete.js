@@ -429,6 +429,221 @@ function _handleHtmlInput(ta) {
 }
 
 /* ══════════════════════════════════════════════════════════════
+   JS AUTOCOMPLETE
+══════════════════════════════════════════════════════════════ */
+const JS_KEYWORDS = [
+  'break','case','catch','class','const','continue','debugger','default',
+  'delete','do','else','export','extends','finally','for','function','if',
+  'import','in','instanceof','let','new','of','return','static','super',
+  'switch','this','throw','try','typeof','var','void','while','with','yield',
+  'async','await','from','as','null','undefined','true','false','NaN',
+  'Infinity',
+];
+
+const JS_BUILTINS = [
+  // Globals
+  'console','window','document','globalThis','navigator','location','history',
+  'localStorage','sessionStorage','indexedDB','performance','crypto',
+  'fetch','XMLHttpRequest','WebSocket','Worker','SharedWorker',
+  // console methods
+  'console.log','console.error','console.warn','console.info','console.dir',
+  'console.table','console.time','console.timeEnd','console.group',
+  'console.groupEnd','console.clear','console.count','console.assert',
+  // Built-in constructors / objects
+  'Array','Object','String','Number','Boolean','Symbol','BigInt',
+  'Map','Set','WeakMap','WeakSet','WeakRef','Promise','Proxy','Reflect',
+  'Date','RegExp','Error','TypeError','RangeError','SyntaxError',
+  'ReferenceError','URIError','EvalError','AggregateError',
+  'ArrayBuffer','DataView','Int8Array','Uint8Array','Uint8ClampedArray',
+  'Int16Array','Uint16Array','Int32Array','Uint32Array',
+  'Float32Array','Float64Array','BigInt64Array','BigUint64Array',
+  'JSON','Math','Atomics','Intl','URL','URLSearchParams','FormData',
+  'Blob','File','FileReader','MutationObserver','IntersectionObserver',
+  'ResizeObserver','PerformanceObserver','EventTarget','AbortController',
+  'AbortSignal','BroadcastChannel','MessageChannel','TextEncoder',
+  'TextDecoder','CompressionStream','DecompressionStream',
+  // Array methods
+  'Array.from','Array.isArray','Array.of',
+  // Object methods
+  'Object.keys','Object.values','Object.entries','Object.assign',
+  'Object.create','Object.freeze','Object.seal','Object.defineProperty',
+  'Object.getPrototypeOf','Object.fromEntries','Object.hasOwn',
+  // Promise methods
+  'Promise.resolve','Promise.reject','Promise.all','Promise.allSettled',
+  'Promise.any','Promise.race',
+  // Math methods
+  'Math.abs','Math.ceil','Math.floor','Math.round','Math.max','Math.min',
+  'Math.random','Math.sqrt','Math.pow','Math.log','Math.log2','Math.log10',
+  'Math.trunc','Math.sign','Math.PI','Math.E',
+  // JSON
+  'JSON.stringify','JSON.parse',
+  // String methods (prototype, shown as standalone)
+  'toString','valueOf','hasOwnProperty','isPrototypeOf',
+  // DOM
+  'document.getElementById','document.querySelector','document.querySelectorAll',
+  'document.createElement','document.createTextNode','document.createDocumentFragment',
+  'document.getElementsByClassName','document.getElementsByTagName',
+  'document.body','document.head','document.title','document.cookie',
+  'document.readyState','document.addEventListener','document.removeEventListener',
+  'window.addEventListener','window.removeEventListener',
+  'window.setTimeout','window.setInterval','window.clearTimeout','window.clearInterval',
+  'window.requestAnimationFrame','window.cancelAnimationFrame',
+  'window.alert','window.confirm','window.prompt','window.open','window.close',
+  'window.scrollTo','window.scrollBy','window.getComputedStyle',
+  'window.innerWidth','window.innerHeight','window.outerWidth','window.outerHeight',
+  'window.location','window.history','window.navigator',
+  'setTimeout','setInterval','clearTimeout','clearInterval',
+  'requestAnimationFrame','cancelAnimationFrame',
+  'alert','confirm','prompt','parseInt','parseFloat','isNaN','isFinite',
+  'encodeURIComponent','decodeURIComponent','encodeURI','decodeURI','eval',
+  // Common instance methods typed standalone
+  'addEventListener','removeEventListener','dispatchEvent',
+  'appendChild','removeChild','insertBefore','replaceChild','cloneNode',
+  'getAttribute','setAttribute','removeAttribute','hasAttribute',
+  'classList','className','innerHTML','innerText','textContent','outerHTML',
+  'style','dataset','id','parentNode','parentElement','children',
+  'firstChild','lastChild','nextSibling','previousSibling',
+  'firstElementChild','lastElementChild','nextElementSibling','previousElementSibling',
+  'getBoundingClientRect','scrollIntoView','scrollTo','scrollBy',
+  'focus','blur','click','submit','reset','select','closest','matches',
+  'insertAdjacentHTML','insertAdjacentElement','insertAdjacentText',
+  'prepend','append','replaceWith','remove','contains','hasChildNodes',
+  'getContext','toDataURL','requestFullscreen','exitFullscreen',
+  'play','pause','load',
+  // Array instance methods
+  'forEach','map','filter','reduce','reduceRight','find','findIndex',
+  'findLast','findLastIndex','some','every','includes','indexOf','lastIndexOf',
+  'push','pop','shift','unshift','splice','slice','concat','join','reverse',
+  'sort','flat','flatMap','fill','copyWithin','entries','keys','values','at',
+  // String instance methods
+  'split','replace','replaceAll','match','matchAll','search','test',
+  'trim','trimStart','trimEnd','padStart','padEnd','startsWith','endsWith',
+  'repeat','slice','substring','substr','charAt','charCodeAt','codePointAt',
+  'toLowerCase','toUpperCase','toLocaleLowerCase','toLocaleUpperCase',
+  'normalize','indexOf','lastIndexOf','includes',
+  // Promise/async
+  'then','catch','finally',
+  // Storage
+  'localStorage.getItem','localStorage.setItem','localStorage.removeItem',
+  'localStorage.clear','localStorage.key','localStorage.length',
+  'sessionStorage.getItem','sessionStorage.setItem','sessionStorage.removeItem',
+  // fetch / Response
+  'fetch','Response','Request','Headers',
+  // Event types (common)
+  'click','dblclick','mousedown','mouseup','mousemove','mouseover','mouseout',
+  'mouseenter','mouseleave','contextmenu','keydown','keyup','keypress',
+  'input','change','submit','reset','focus','blur','focusin','focusout',
+  'scroll','resize','load','DOMContentLoaded','beforeunload','unload',
+  'touchstart','touchend','touchmove','touchcancel',
+  'pointerdown','pointerup','pointermove','pointerover','pointerout',
+  'pointerenter','pointerleave','pointercancel',
+  'dragstart','dragend','dragover','dragleave','dragenter','drop','drag',
+  'wheel','copy','cut','paste','select','selectstart',
+  'animationstart','animationend','animationiteration','transitionend',
+  'error','abort','progress','canplay','canplaythrough','ended','pause','play',
+  'ratechange','seeked','seeking','stalled','suspend','timeupdate','volumechange',
+  'waiting','fullscreenchange','fullscreenerror','visibilitychange',
+  'hashchange','popstate','storage','online','offline','message','messageerror',
+];
+
+// Extract word-tokens the user has already typed in this file
+function _jsUserWords(ta) {
+  const words = ta.value.match(/[a-zA-Z_$][a-zA-Z0-9_$]*/g) || [];
+  return [...new Set(words)];
+}
+
+// Get the word being typed right before the cursor
+function _jsPartial(ta) {
+  const val    = ta.value;
+  const pos    = ta.selectionStart;
+  const before = val.slice(0, pos);
+  const m      = before.match(/[a-zA-Z_$][a-zA-Z0-9_$.]*$/);
+  return m ? m[0] : '';
+}
+
+function _handleJsInput(ta) {
+  const partial = _jsPartial(ta);
+  if (!partial || partial.length < 2) { _hide(); return; }
+
+  const lc = partial.toLowerCase();
+
+  // Build candidate list: keywords → builtins → user-defined words
+  const seen = new Set();
+  const candidates = [];
+
+  const add = (word, label) => {
+    if (seen.has(word)) return;
+    if (!word.toLowerCase().startsWith(lc)) return;
+    if (word === partial) return; // already fully typed
+    seen.add(word);
+    candidates.push({ word, label });
+  };
+
+  JS_KEYWORDS.forEach(w => add(w, 'kw'));
+  JS_BUILTINS.forEach(w => add(w, 'api'));
+  _jsUserWords(ta).forEach(w => { if (w.length > 2) add(w, 'word'); });
+
+  if (!candidates.length) { _hide(); return; }
+
+  const items  = candidates.slice(0, 12).map(c => c.word);
+  const labels = candidates.slice(0, 12).map(c => c.label);
+
+  // Temporarily override _show to pass per-item type labels
+  _showJs(items, labels, partial, ta);
+}
+
+function _showJs(items, labels, partial, ta) {
+  if (!items.length) { _hide(); return; }
+  _buildDropdown();
+  _items     = items;
+  _onConfirm = item => _replaceBefore(ta, partial, item);
+  _activeTa  = ta;
+  _activeIdx = 0;
+
+  _drop.innerHTML = '';
+  items.forEach((item, i) => {
+    const row = document.createElement('div');
+    row.className = 'ac-item' + (i === 0 ? ' ac-active' : '');
+    row.setAttribute('role', 'option');
+
+    const lc = partial.toLowerCase();
+    const matchEnd = item.toLowerCase().startsWith(lc) ? lc.length : 0;
+    const label = document.createElement('span');
+    if (matchEnd > 0) {
+      const bold = document.createElement('span');
+      bold.className = 'ac-item-match';
+      bold.textContent = item.slice(0, matchEnd);
+      label.appendChild(bold);
+      label.appendChild(document.createTextNode(item.slice(matchEnd)));
+    } else {
+      label.textContent = item;
+    }
+    row.appendChild(label);
+
+    const type = document.createElement('span');
+    type.className = 'ac-item-type';
+    type.textContent = labels[i];
+    row.appendChild(type);
+
+    row.addEventListener('mousedown', e => {
+      e.preventDefault();
+      _replaceBefore(ta, partial, item);
+      _hide();
+      ta.focus();
+    });
+    _drop.appendChild(row);
+  });
+
+  const coords = getCaretCoords(ta);
+  const vw = window.innerWidth;
+  let left = coords.left;
+  if (left + 200 > vw) left = vw - 204;
+  _drop.style.top  = (coords.bottom + 2) + 'px';
+  _drop.style.left = left + 'px';
+  _drop.classList.add('visible');
+}
+
+/* ══════════════════════════════════════════════════════════════
    SHARED HELPER
 ══════════════════════════════════════════════════════════════ */
 function _replaceBefore(ta, partial, replacement) {
@@ -447,6 +662,7 @@ function _wireOneTa(ta, lang) {
   ta.addEventListener('input', () => {
     if (lang === 'css')       _handleCssInput(ta);
     else if (lang === 'html') _handleHtmlInput(ta);
+    else if (lang === 'js')   _handleJsInput(ta);
     else _hide();
   });
 
@@ -478,5 +694,6 @@ function wireAutoComplete() {
     const tabs = tabsFor(side);
     _wireOneTa(tabs.css.ta,  'css');
     _wireOneTa(tabs.html.ta, 'html');
+    _wireOneTa(tabs.js.ta,   'js');
   });
 }

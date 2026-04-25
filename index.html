@@ -1438,15 +1438,16 @@
       border: 1px solid var(--border);
       border-radius: var(--r);
       box-shadow: 0 8px 24px rgba(0,0,0,.40);
-      min-width: 180px;
-      max-width: 320px;
+      min-width: 200px;
+      max-width: 340px;
       max-height: 220px;
       overflow-y: auto;
       display: none;
       scrollbar-width: thin;
       scrollbar-color: var(--border) transparent;
     }
-    #acDropdown.open { display: block; }
+    #acDropdown.open    { display: block; }
+    #acDropdown.visible { display: block; }
     .ac-item {
       padding: 5px 10px;
       font-family: var(--font-mono);
@@ -1457,16 +1458,31 @@
       overflow: hidden;
       text-overflow: ellipsis;
       border-bottom: 1px solid transparent;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
     }
-    .ac-item:hover, .ac-item.active {
+    .ac-item:hover, .ac-item.active, .ac-item.ac-active {
       background: var(--bg3);
       color: var(--blue);
     }
-    .ac-item .ac-kind {
+    .ac-item .ac-kind,
+    .ac-item .ac-item-type {
       font-size: 10px;
       color: var(--txt2);
-      margin-left: 6px;
+      margin-left: auto;
+      flex-shrink: 0;
       font-family: var(--font-ui);
+      opacity: .75;
+    }
+    .ac-item-match {
+      font-weight: 700;
+      color: var(--yellow, #e3b341);
+    }
+    .ac-item:hover .ac-item-match,
+    .ac-item.ac-active .ac-item-match {
+      color: inherit;
     }
 
 
