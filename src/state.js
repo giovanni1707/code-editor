@@ -86,8 +86,9 @@ const state = ReactiveUtils.state({
     semiPause:  true,
     speed:      6,
     tabSize:    2,    // indent width when Tab is pressed (2 or 4)
-    minimap:    false, // show minimap panel
-    autosave:   false, // auto-save on every keystroke (false = manual Ctrl+S only)
+    minimap:      false, // show minimap panel
+    autosave:     false, // auto-save on every keystroke (false = manual Ctrl+S only)
+    autocomplete: true,  // show autocomplete dropdown while typing
   },
 
   /* session: panel UI state that persists between reloads */
@@ -238,7 +239,7 @@ function setupReactivity() {
     const s = state.settings;
     // Access each property so the effect tracks all of them
     const _snap = s.theme + s.fontSize + s.lineNums + s.wordWrap +
-                  s.autoPlay + s.semiPause + s.speed + s.tabSize + s.minimap + s.autosave;
+                  s.autoPlay + s.semiPause + s.speed + s.tabSize + s.minimap + s.autosave + s.autocomplete;
     saveSettings();
   });
 
@@ -361,7 +362,9 @@ function setupReactivity() {
     if (el.stgAutoPlay)  el.stgAutoPlay.checked           = state.settings.autoPlay;
     if (el.stgSemiPause) el.stgSemiPause.checked          = state.settings.semiPause;
     if (el.stgTabSize)   el.stgTabSize.value              = state.settings.tabSize;
-    if (el.stgAutosave)  el.stgAutosave.checked           = state.settings.autosave;
+    if (el.stgAutosave)      el.stgAutosave.checked       = state.settings.autosave;
+    const acEl = document.getElementById('stgAutocomplete');
+    if (acEl) acEl.checked = state.settings.autocomplete;
   });
 
   // ── Minimap disabled ─────────────────────────────────────────

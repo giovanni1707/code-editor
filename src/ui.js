@@ -92,6 +92,10 @@ function wireSettings() {
     state.settings.autosave = e.target.checked;
   });
 
+  document.getElementById('stgAutocomplete')?.addEventListener('change', e => {
+    state.settings.autocomplete = e.target.checked;
+  });
+
   document.getElementById('clearCacheBtn').addEventListener('click', () => {
     if (!confirm('Clear all saved data and reload?')) return;
     localStorage.clear();

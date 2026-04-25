@@ -660,6 +660,7 @@ function _replaceBefore(ta, partial, replacement) {
 function _wireOneTa(ta, lang) {
   // input → trigger suggestions
   ta.addEventListener('input', () => {
+    if (!state.settings.autocomplete) { _hide(); return; }
     if (lang === 'css')       _handleCssInput(ta);
     else if (lang === 'html') _handleHtmlInput(ta);
     else if (lang === 'js')   _handleJsInput(ta);
