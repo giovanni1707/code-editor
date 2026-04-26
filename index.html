@@ -250,6 +250,28 @@
     .icon-btn.rec-active { background: var(--red); border-color: var(--red); color: #fff; animation: rec-pulse 1.2s ease-in-out infinite; }
     @keyframes rec-pulse { 0%,100% { opacity:1; } 50% { opacity:.55; } }
 
+    /* ── Zen mode (toolbar hidden) ──────────────────────────────── */
+    body.zen #toolbar { display: none; }
+    #zenShowBtn {
+      display: none;
+      position: fixed;
+      top: 6px;
+      right: 10px;
+      z-index: 200;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      color: var(--txt1);
+      font-size: 13px;
+      padding: 3px 9px;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    body.zen #zenShowBtn { display: block; }
+    body.zen:hover #zenShowBtn,
+    body.zen #zenShowBtn:focus { opacity: 1; }
+
     /* ─── Main area ──────────────────────────────────────────────── */
     #main {
       flex: 1;
@@ -1793,6 +1815,8 @@
 <body>
 
 <!-- ═══ TOOLBAR ══════════════════════════════════════════════════════ -->
+<button id="zenShowBtn" title="Show toolbar (Ctrl+Shift+H)">⊞ Show toolbar</button>
+
 <div id="toolbar">
   <div class="brand">
     <div class="brand-icon">&lt;/&gt;</div>
@@ -1865,6 +1889,7 @@
   <button class="icon-btn" id="settingsBtn" title="Settings (Ctrl+,)">⚙</button>
   <button class="icon-btn" id="fsBtn"     title="Fullscreen (F11)">⛶</button>
   <div class="tb-sep"></div>
+  <button class="icon-btn" id="zenBtn"  title="Hide toolbar (Ctrl+Shift+H)">▲</button>
   <button class="icon-btn" id="recBtn" title="Record screen">⏺</button>
   <span id="recTimer" style="display:none;font-size:11px;font-family:var(--font-mono);color:var(--red);min-width:38px;text-align:center">00:00</span>
 </div>

@@ -122,6 +122,11 @@ function applyBrightness(val) {
     val === 100 ? '' : `brightness(${val}%)`;
 }
 
+/* ── Zen mode (hide toolbar) ─────────────────────────────────── */
+function toggleZen() {
+  document.body.classList.toggle('zen');
+}
+
 /* ── Toolbar buttons ─────────────────────────────────────────── */
 function wireToolbar() {
   el.speedRange.addEventListener('input', () => {
@@ -147,6 +152,8 @@ function wireToolbar() {
   el.layoutBtn.addEventListener('click', cycleLayout);
   el.themeBtn.addEventListener('click', toggleTheme);
   el.fsBtn.addEventListener('click', toggleFullscreen);
+  document.getElementById('zenBtn')?.addEventListener('click', toggleZen);
+  document.getElementById('zenShowBtn')?.addEventListener('click', toggleZen);
 
   // Track last focused panel via mousedown (not focusin, which fires on programmatic .focus() during init)
   document.getElementById('colLeft')?.addEventListener('mousedown',  () => { _lastFocusedSide = 'left';  });
@@ -204,6 +211,7 @@ function wireKeyboard() {
 
     // Settings / theme / fullscreen
     if (ctrl && e.key === ',')  { e.preventDefault(); openSettings();     return; }
+    if (ctrl && e.shiftKey && e.key === 'H') { e.preventDefault(); toggleZen();   return; }
     if (ctrl && e.shiftKey && e.key === 'T') { e.preventDefault(); toggleTheme(); return; }
     if (e.key === 'F11')    { e.preventDefault(); toggleFullscreen(); return; }
 
