@@ -6,6 +6,8 @@
 
 'use strict';
 
+const _cdTimers = { left: null, right: null };
+
 /* ════════════════════════════════════════════════════════════════
    TAB SWITCHING
 ════════════════════════════════════════════════════════════════ */
@@ -56,6 +58,10 @@ function wireTabButtons(side) {
 ════════════════════════════════════════════════════════════════ */
 function setPanelMode(side, mode) {
   stopTw(side);
+  // Cancel any pending countdown when leaving raw mode
+  clearTimeout(_cdTimers[side]);
+  const _cdEl = document.getElementById(side === 'left' ? 'cdLeft' : 'cdRight');
+  if (_cdEl) _cdEl.classList.remove('visible');
   removeDynStyles(side);
   state.panelMode[side] = mode;
   // Mutating state.session triggers auto-save via reactive session effect
@@ -126,8 +132,41 @@ function setPanelMode(side, mode) {
   pauseBtn.textContent = '⏸ Pause';
   pauseBtn.classList.remove('paused');
 
-  // Auto-play
-  if (isTw && state.settings.autoPlay) startTw(side);
+  // Auto-play (with optional delay)
+  if (isTw && state.settings.autoPlay) {
+    const delaySec = state.settings.autoPlayDelay || 0;
+    if (delaySec > 0) {
+      _showCountdown(side, delaySec, () => {
+        if (state.panelMode[side] === 'raw') startTw(side);
+      });
+    } else {
+      startTw(side);
+    }
+  }
+}
+
+/* ── Countdown overlay before autoplay ──────────────────────── */
+function _showCountdown(side, seconds, onDone) {
+  const overlay = document.getElementById(side === 'left' ? 'cdLeft' : 'cdRight');
+  if (!overlay) { onDone(); return; }
+
+  clearTimeout(_cdTimers[side]);
+
+  let remaining = seconds;
+  overlay.textContent = remaining;
+  overlay.classList.add('visible');
+
+  function tick() {
+    remaining--;
+    if (remaining <= 0) {
+      overlay.classList.remove('visible');
+      onDone();
+    } else {
+      overlay.textContent = remaining;
+      _cdTimers[side] = setTimeout(tick, 1000);
+    }
+  }
+  _cdTimers[side] = setTimeout(tick, 1000);
 }
 
 /* ════════════════════════════════════════════════════════════════

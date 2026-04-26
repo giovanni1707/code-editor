@@ -76,6 +76,15 @@ function wireSettings() {
 
   el.stgAutoPlay.addEventListener('change', () => {
     state.settings.autoPlay = el.stgAutoPlay.checked;
+    const apd = document.getElementById('stgAutoPlayDelay');
+    if (apd) apd.disabled = !el.stgAutoPlay.checked;
+  });
+
+  document.getElementById('stgAutoPlayDelay')?.addEventListener('input', e => {
+    const v = +e.target.value;
+    state.settings.autoPlayDelay = v;
+    const lbl = document.getElementById('stgAutoPlayDelayVal');
+    if (lbl) lbl.textContent = v === 0 ? 'Off' : v + 's';
   });
 
   el.stgSemiPause.addEventListener('change', () => {
@@ -260,8 +269,12 @@ function wireKeyboard() {
       return;
     }
 
-    // Escape — close overlays and clear multi-cursors
+    // Escape — exit zen mode first; otherwise close overlays
     if (e.key === 'Escape') {
+      if (document.body.classList.contains('zen')) {
+        document.body.classList.remove('zen');
+        return;
+      }
       closeSettings();
       closeCommandPalette();
       closeGlobalSearch();
@@ -270,7 +283,7 @@ function wireKeyboard() {
       return;
     }
 
-    // Space / R — typewriter controls only when no input field has focus
+    // Space / R / Enter — typewriter controls only when no input field has focus
     if (!inTA && !inAnyInput) {
       if (e.key === ' ') {
         e.preventDefault();
@@ -283,6 +296,19 @@ function wireKeyboard() {
         if (state.panelMode.left  === 'raw') restartTw('left');
         if (state.panelMode.right === 'raw') restartTw('right');
         return;
+      }
+      // Enter — start playback when in Raw mode and typewriter hasn't started yet
+      if (e.key === 'Enter') {
+        let acted = false;
+        ['left', 'right'].forEach(side => {
+          const tw = state.tw[side];
+          if (state.panelMode[side] === 'raw' && !tw.interval && !tw.isDone) {
+            e.preventDefault();
+            startTw(side);
+            acted = true;
+          }
+        });
+        if (acted) return;
       }
     }
     // Note: Tab key in textareas is handled entirely by wireAutoClose (autoclose.js)

@@ -82,8 +82,9 @@ const state = ReactiveUtils.state({
     fontSize:   13,
     lineNums:   true,
     wordWrap:   false,
-    autoPlay:   true,
-    semiPause:  true,
+    autoPlay:      true,
+    autoPlayDelay: 0,   // seconds before autoplay starts (0 = instant, 1–10)
+    semiPause:     true,
     speed:      6,
     tabSize:    2,    // indent width when Tab is pressed (2 or 4)
     minimap:      false, // show minimap panel
@@ -241,7 +242,7 @@ function setupReactivity() {
     const s = state.settings;
     // Access each property so the effect tracks all of them
     const _snap = s.theme + s.fontSize + s.lineNums + s.wordWrap +
-                  s.autoPlay + s.semiPause + s.speed + s.tabSize + s.minimap + s.autosave + s.autocomplete + s.squiggles + s.dhDocs;
+                  s.autoPlay + s.autoPlayDelay + s.semiPause + s.speed + s.tabSize + s.minimap + s.autosave + s.autocomplete + s.squiggles + s.dhDocs;
     saveSettings();
   });
 
@@ -361,7 +362,11 @@ function setupReactivity() {
     if (el.stgFontSize)  el.stgFontSize.value             = state.settings.fontSize;
     if (el.stgFontSizeVal) el.stgFontSizeVal.textContent  = state.settings.fontSize + 'px';
     if (el.stgWrap)      el.stgWrap.checked               = state.settings.wordWrap;
-    if (el.stgAutoPlay)  el.stgAutoPlay.checked           = state.settings.autoPlay;
+    if (el.stgAutoPlay)  el.stgAutoPlay.checked            = state.settings.autoPlay;
+    const apd = document.getElementById('stgAutoPlayDelay');
+    if (apd) { apd.value = state.settings.autoPlayDelay; apd.disabled = !state.settings.autoPlay; }
+    const apdVal = document.getElementById('stgAutoPlayDelayVal');
+    if (apdVal) apdVal.textContent = state.settings.autoPlayDelay === 0 ? 'Off' : state.settings.autoPlayDelay + 's';
     if (el.stgSemiPause) el.stgSemiPause.checked          = state.settings.semiPause;
     if (el.stgTabSize)   el.stgTabSize.value              = state.settings.tabSize;
     if (el.stgAutosave)      el.stgAutosave.checked       = state.settings.autosave;

@@ -250,8 +250,9 @@
     .icon-btn.rec-active { background: var(--red); border-color: var(--red); color: #fff; animation: rec-pulse 1.2s ease-in-out infinite; }
     @keyframes rec-pulse { 0%,100% { opacity:1; } 50% { opacity:.55; } }
 
-    /* ── Zen mode (toolbar hidden) ──────────────────────────────── */
-    body.zen #toolbar { display: none; }
+    /* ── Zen mode (toolbar + tab bars hidden) ───────────────────── */
+    body.zen #toolbar    { display: none; }
+    body.zen .col-tabs   { display: none; }
     #zenShowBtn {
       display: none;
       position: fixed;
@@ -705,6 +706,28 @@
     }
     .out-block-body.js-body  { border-color: rgba(227,179,65,.25); }
     .out-block-body.css-body { border-color: rgba(88,166,255,.2); }
+
+    /* Autoplay countdown overlay — sits below the tab bar, covers only the output area */
+    .autoplay-countdown {
+      position: absolute;
+      top: var(--tab-h);   /* push below the .col-tabs bar */
+      left: 0; right: 0; bottom: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 96px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: var(--blue);
+      background: transparent;
+      pointer-events: none;
+      z-index: 20;
+    }
+    .autoplay-countdown.visible {
+      display: flex;
+      animation: cd-pulse 1s ease-in-out infinite;
+    }
+    @keyframes cd-pulse { 0%,100%{opacity:.5} 50%{opacity:1} }
 
     /* Typewriter caret */
     .tw-caret {
@@ -1917,6 +1940,7 @@
 
   <!-- ─── LEFT PANEL ─────────────────────────────────────────────── -->
   <div class="editor-col" id="colLeft">
+    <div class="autoplay-countdown" id="cdLeft"></div>
     <div class="panel-live-wrap" id="liveWrapL">
 
       <!-- Editor pane (left side of internal split) -->
@@ -2057,6 +2081,7 @@
 
   <!-- ─── RIGHT PANEL ────────────────────────────────────────────── -->
   <div class="editor-col" id="colRight">
+    <div class="autoplay-countdown" id="cdRight"></div>
     <div class="panel-live-wrap" id="liveWrapR">
 
       <!-- Editor pane (left side of internal split) -->
@@ -2285,6 +2310,16 @@
           <span class="stg-desc">Start typewriter automatically</span>
         </div>
         <label class="toggle"><input type="checkbox" id="stgAutoPlay" checked /><span class="toggle-track"></span></label>
+      </div>
+      <div class="stg-row">
+        <div class="stg-info">
+          <span class="stg-label">Auto-Play Delay</span>
+          <span class="stg-desc">Countdown before typewriter starts (0 = instant)</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <input type="range" id="stgAutoPlayDelay" min="0" max="10" value="0" step="1" style="width:90px;cursor:pointer" />
+          <span id="stgAutoPlayDelayVal" style="font-size:12px;color:var(--txt1);min-width:26px;text-align:right">Off</span>
+        </div>
       </div>
       <div class="stg-row">
         <div class="stg-info">
