@@ -212,6 +212,20 @@ function wireKeyboard() {
       return;
     }
 
+    // Ctrl+Alt+D — select next occurrence
+    if (ctrl && e.altKey && e.key === 'd' && inTA) {
+      e.preventDefault();
+      _selectNextMatch(document.activeElement);
+      return;
+    }
+
+    // Ctrl+Alt+K — select all occurrences at once
+    if (ctrl && e.altKey && e.key === 'k' && inTA) {
+      e.preventDefault();
+      _selectAllMatches(document.activeElement);
+      return;
+    }
+
     // Toggle sidebar (Ctrl+B)
     if (ctrl && e.key === 'b') { e.preventDefault(); toggleSidebar(); return; }
 

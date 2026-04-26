@@ -1738,6 +1738,13 @@
       animation: mc-blink 1.1s step-start infinite;
     }
     @keyframes mc-blink { 50% { opacity: 0; } }
+    .mc-highlight {
+      position: absolute;
+      background: rgba(88, 166, 255, 0.25);
+      border: 1px solid rgba(88, 166, 255, 0.6);
+      border-radius: 2px;
+      pointer-events: none;
+    }
 
     /* ─── Command Palette ───────────────────────────────────────── */
     .cp-overlay {
@@ -2378,6 +2385,8 @@
           <span><kbd>Tab</kbd> Emmet / indent</span>
           <span><kbd>Shift+Tab</kbd> Dedent</span>
           <span><kbd>Alt+Click</kbd> Add cursor</span>
+          <span><kbd>Ctrl+Alt+D</kbd> Select next match</span>
+          <span><kbd>Ctrl+Alt+K</kbd> Select all matches</span>
           <span><kbd>Escape</kbd> Clear cursors</span>
         </div>
       </div>
@@ -2404,6 +2413,7 @@
 <script src="src/formatter.js"></script>
 <script src="src/find.js"></script>
 <script src="src/export.js"></script>
+<script src="src/multi-cursor.js"></script>
 <script src="src/ui.js"></script>
 <script src="src/files.js"></script>
 <script src="src/panel-tabs.js"></script>
@@ -2420,7 +2430,6 @@
 <script src="src/command-palette.js"></script>
 <script src="src/global-search.js"></script>
 <script src="src/minimap.js"></script>
-<script src="src/multi-cursor.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
