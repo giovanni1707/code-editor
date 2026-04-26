@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(grep -E \"^\\\\s*\\(function|const|let|var|class\\) \\([\\\\w$]+\\)|\\\\.[\\\\w$]+ =\" \"/c/Users/DELL/Desktop/Project/Code Editor/dom-helpers.js/01_core/01_dh-core.js\")"
+      "Bash(grep -E \"^\\\\s*\\(function|const|let|var|class\\) \\([\\\\w$]+\\)|\\\\.[\\\\w$]+ =\" \"/c/Users/DELL/Desktop/Project/Code Editor/dom-helpers.js/01_core/01_dh-core.js\")",
+      "Bash(grep -A 10 \"module.exports\\\\|global\\\\\\\\..*=\" /c/Users/DELL/Desktop/Project/\"Code Editor\"/dom-helpers.js/03_conditions/01_dh-conditional-rendering.js)",
+      "Bash(grep -A 10 \"module.exports\\\\|global\\\\\\\\..*=\" /c/Users/DELL/Desktop/Project/\"Code Editor\"/dom-helpers.js/04_reactive/01_dh-reactive.js)",
+      "Bash(grep -n \"^  const Conditions = \\\\|^  global\\\\\\\\.Conditions = \\\\|^  global\\\\\\\\.ReactiveUtils = \\\\|^  global\\\\\\\\.ReactiveState = \" /c/Users/DELL/Desktop/Project/\"Code Editor\"/dom-helpers.js/03_conditions/01_dh-conditional-rendering.js)",
+      "Bash(grep -n \"^  const Conditions = \\\\|Conditions\\\\\\\\.\\\\\\\\w* = \" /c/Users/DELL/Desktop/Project/\"Code Editor\"/dom-helpers.js/03_conditions/01_dh-conditional-rendering.js)"
     ]
   }
 }

@@ -456,6 +456,41 @@
       opacity: 0.55;
     }
 
+    /* ── DOM Helpers API tooltip ─────────────────────────────── */
+    #dhDocTip {
+      display: none;
+      position: fixed;
+      z-index: 9999;
+      max-width: 380px;
+      min-width: 200px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 10px 13px;
+      box-shadow: 0 6px 24px rgba(0,0,0,.45);
+      font-family: var(--font-ui);
+      pointer-events: none;
+    }
+    .dh-tip-mod {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+    .dh-tip-sig {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--txt0);
+      margin-bottom: 6px;
+      word-break: break-all;
+    }
+    .dh-tip-desc {
+      font-size: 12px;
+      color: var(--txt1);
+      line-height: 1.5;
+    }
+
     pre.hl-layer {
       position: absolute; inset: 0;
       box-sizing: border-box;
@@ -2203,6 +2238,13 @@
         </div>
         <label class="toggle"><input type="checkbox" id="stgSquiggles" checked /><span class="toggle-track"></span></label>
       </div>
+      <div class="stg-row">
+        <div class="stg-info">
+          <span class="stg-label">DOM Helpers API Hints</span>
+          <span class="stg-desc">Show signature &amp; description tooltip when cursor rests on a DH identifier</span>
+        </div>
+        <label class="toggle"><input type="checkbox" id="stgDhDocs" checked /><span class="toggle-track"></span></label>
+      </div>
     </div>
 
     <div class="stg-group">
@@ -2306,6 +2348,7 @@
 <script src="src/autocomplete.js"></script>
 <script src="src/ghost-text.js"></script>
 <script src="src/squiggles.js"></script>
+<script src="src/dh-docs.js"></script>
 <script src="src/bracket-colors.js"></script>
 <script src="src/color-picker.js"></script>
 <script src="src/command-palette.js"></script>

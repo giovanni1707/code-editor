@@ -105,6 +105,10 @@ function wireSettings() {
     if (!e.target.checked) clearAllSquiggles();
   });
 
+  document.getElementById('stgDhDocs')?.addEventListener('change', e => {
+    state.settings.dhDocs = e.target.checked;
+  });
+
   document.getElementById('clearCacheBtn').addEventListener('click', () => {
     if (!confirm('Clear all saved data and reload?')) return;
     localStorage.clear();

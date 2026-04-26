@@ -90,6 +90,7 @@ const state = ReactiveUtils.state({
     autosave:     false, // auto-save on every keystroke (false = manual Ctrl+S only)
     autocomplete: true,  // show autocomplete dropdown while typing
     squiggles:    true,  // show red wavy underlines on JS syntax errors
+    dhDocs:       true,  // show DOM Helpers API tooltip on hover/cursor
   },
 
   /* session: panel UI state that persists between reloads */
@@ -240,7 +241,7 @@ function setupReactivity() {
     const s = state.settings;
     // Access each property so the effect tracks all of them
     const _snap = s.theme + s.fontSize + s.lineNums + s.wordWrap +
-                  s.autoPlay + s.semiPause + s.speed + s.tabSize + s.minimap + s.autosave + s.autocomplete + s.squiggles;
+                  s.autoPlay + s.semiPause + s.speed + s.tabSize + s.minimap + s.autosave + s.autocomplete + s.squiggles + s.dhDocs;
     saveSettings();
   });
 
@@ -368,6 +369,8 @@ function setupReactivity() {
     if (acEl) acEl.checked = state.settings.autocomplete;
     const sqEl = document.getElementById('stgSquiggles');
     if (sqEl) sqEl.checked = state.settings.squiggles;
+    const dhEl = document.getElementById('stgDhDocs');
+    if (dhEl) dhEl.checked = state.settings.dhDocs;
   });
 
   // ── Minimap disabled ─────────────────────────────────────────
