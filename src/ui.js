@@ -94,6 +94,10 @@ function wireSettings() {
 
   document.getElementById('stgAutocomplete')?.addEventListener('change', e => {
     state.settings.autocomplete = e.target.checked;
+    if (!e.target.checked) {
+      // Clear any active ghost text across all textareas
+      document.querySelectorAll('.ghost-layer').forEach(l => { l.style.display = 'none'; });
+    }
   });
 
   document.getElementById('stgSquiggles')?.addEventListener('change', e => {

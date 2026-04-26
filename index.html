@@ -434,6 +434,28 @@
     :root.light textarea.code-ta::selection      { background: rgba(9,105,218,0.25); color: transparent; }
     :root.light textarea.code-ta::-moz-selection { background: rgba(9,105,218,0.25); color: transparent; }
 
+    /* ─── Ghost-text inline suggestion layer ───────────────────── */
+    .ghost-layer {
+      position: absolute; inset: 0;
+      box-sizing: border-box;
+      font-family: var(--font-mono);
+      font-size: var(--editor-font-size, 13px);
+      line-height: var(--editor-line-height, 22px);
+      padding: 14px;
+      white-space: pre;
+      word-wrap: normal;
+      tab-size: var(--editor-tab-size, 2);
+      pointer-events: none;
+      z-index: 3; /* above textarea (2) so ghost-suffix is visible */
+      overflow: hidden;
+      color: transparent; /* non-ghost text invisible */
+      display: none;
+    }
+    .ghost-suffix {
+      color: var(--txt2);
+      opacity: 0.55;
+    }
+
     pre.hl-layer {
       position: absolute; inset: 0;
       box-sizing: border-box;
@@ -2282,6 +2304,7 @@
 <script src="src/intel-utils.js"></script>
 <script src="src/snippets.js"></script>
 <script src="src/autocomplete.js"></script>
+<script src="src/ghost-text.js"></script>
 <script src="src/squiggles.js"></script>
 <script src="src/bracket-colors.js"></script>
 <script src="src/color-picker.js"></script>

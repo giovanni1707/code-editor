@@ -74,6 +74,7 @@ function init() {
   wireSettings();
   wireKeyboard();
   wireAutoComplete();
+  wireGhostText();
   wireSquiggles();
   wireExplorer();
   wireCommandPalette();
