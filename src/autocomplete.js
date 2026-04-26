@@ -561,27 +561,176 @@ function _jsPartial(ta) {
   return m ? m[0] : '';
 }
 
+/* ══════════════════════════════════════════════════════════════
+   DOM-HELPERS LIBRARY AUTOCOMPLETE
+══════════════════════════════════════════════════════════════ */
+const DH_GLOBALS = [
+  // Top-level namespaces & constructors
+  'Elements','Collections','Selector','ReactiveUtils','Conditions',
+  'Animation','AsyncHelpers','StorageUtils','Router',
+  'ClassName','TagName','Name','Id','DOMHelpers',
+  // Global query shortcuts
+  'querySelector','querySelectorAll','query','queryAll',
+  'queryWithin','queryAllWithin',
+  'eachEntries','mapEntries',
+];
+
+const DH_MEMBERS = {
+  // ── Elements ─────────────────────────────────────────────────────
+  'Elements': [
+    'get','exists','getRequired','getProperty','setProperty',
+    'getAttribute','setAttribute','waitFor','destructure',
+    'clear','stats','isCached',
+    'textContent','innerHTML','innerText','value','placeholder',
+    'title','disabled','checked','readonly','hidden','selected',
+    'src','href','alt','style','dataset','attrs','classes','prop',
+    'update',
+  ],
+  // ── Collections.ClassName / TagName / Name ────────────────────
+  'Collections': [
+    'ClassName','TagName','Name',
+    'update','textContent','innerHTML','value','style',
+    'dataset','attrs','classes','prop',
+  ],
+  // ── Selector ─────────────────────────────────────────────────────
+  'Selector': ['query','queryAll','update'],
+  // ── Id ───────────────────────────────────────────────────────────
+  'Id': [
+    'multiple','required','waitFor','exists','get','update',
+    'setProperty','getProperty','setAttribute','getAttribute',
+    'clearCache','stats','isCached','Elements',
+  ],
+  // ── ReactiveUtils ─────────────────────────────────────────────
+  'ReactiveUtils': [
+    'state','createState','ref','refs','form','async','store',
+    'component','reactive',
+    'effect','effects','watch','computed','batch','notify',
+    'pause','resume','untrack','isReactive','toRaw',
+    'collection','list','bindings','updateAll',
+    // namespace sub-methods exposed
+    'destroy','set','cleanup','execute','abort','reset','refetch',
+    'save','load','startAutoSave','stopAutoSave','storageInfo',
+  ],
+  // ── Reactive state instance methods ($-prefixed) ──────────────
+  '$': [
+    '$computed','$watch','$batch','$notify','$update','$set','$bind',
+    '$setValue','$setError','$reset',
+    '$execute','$abort',
+    '$add','$remove','$update','$clear',
+    '$destroy','$cleanup',
+    '$save','$load','$startAutoSave','$stopAutoSave','$storageInfo',
+  ],
+  // ── Conditions ────────────────────────────────────────────────
+  'Conditions': [
+    'whenState','apply','watch','batch',
+    'registerMatcher','registerHandler','getMatchers','getHandlers',
+  ],
+  // ── Animation ────────────────────────────────────────────────
+  'Animation': [
+    'fadeIn','fadeOut','slideUp','slideDown','slideToggle',
+    'transform','chain','enhance','clearQueue','setDefaults','getDefaults',
+    'isSupported',
+  ],
+  // ── AnimationChain ────────────────────────────────────────────
+  'AnimationChain': [
+    'fadeIn','fadeOut','slideUp','slideDown','slideToggle',
+    'transform','delay','next','play',
+  ],
+  // ── AsyncHelpers ─────────────────────────────────────────────
+  'AsyncHelpers': [
+    'debounce','throttle','sanitize','sleep',
+    'fetch','fetchJSON','fetchText','fetchBlob',
+    'asyncHandler','parallelAll','raceWithTimeout','configure',
+    'isDOMHelpersAvailable',
+  ],
+  // ── StorageUtils ─────────────────────────────────────────────
+  'StorageUtils': [
+    'save','load','clear','exists','watch',
+    'createAutoSave','getInfo','clearAll','serialize','deserialize',
+  ],
+  // ── Router ───────────────────────────────────────────────────
+  'Router': [
+    'define','mount','start','go','back','forward','current',
+    'configure','on','off','beforeEach','afterEach',
+  ],
+  // ── Element/Collection .update() options keys ─────────────────
+  'update': [
+    'style','classList','attrs','attributes','dataset',
+    'addEventListener','removeEventListener','textContent',
+    'innerHTML','innerText','value','src','href','alt',
+    'disabled','checked','hidden','readonly','selected',
+    'placeholder','title','className','id',
+  ],
+};
+
+// Flat list: all dotted completions like "ReactiveUtils.state", "Animation.fadeIn"
+const DH_DOTTED = Object.entries(DH_MEMBERS).flatMap(([ns, methods]) =>
+  ns === '$' || ns === 'update' || ns === 'AnimationChain'
+    ? []
+    : methods.map(m => ns + '.' + m)
+);
+
+// Given partial like "ReactiveUtils.st" or "ReactiveUtils." → return member matches
+function _dhMemberMatches(partial) {
+  const dot = partial.lastIndexOf('.');
+  if (dot === -1) return [];
+  const ns      = partial.slice(0, dot);
+  const typed   = partial.slice(dot + 1); // what they typed after the dot
+  const lc      = typed.toLowerCase();
+  const members = DH_MEMBERS[ns];
+  if (!members) return [];
+  return members
+    .filter(m => m.toLowerCase().startsWith(lc) && m !== typed)
+    .map(m => ({ word: ns + '.' + m, label: 'dh' }));
+}
+
+/* ══════════════════════════════════════════════════════════════ */
+
 function _handleJsInput(ta) {
   const partial = _jsPartial(ta);
-  if (!partial || partial.length < 2) { _hide(); return; }
+  if (!partial) { _hide(); return; }
+  // Allow single-char to show DH globals (e.g. "E" → Elements); hide for everything else
+  if (partial.length < 2 && !partial.startsWith('$')) {
+    // Still show DH globals for single uppercase letter (all DH globals start uppercase or are short)
+    const lc1 = partial.toLowerCase();
+    const dhHits = DH_GLOBALS.filter(w => w.toLowerCase().startsWith(lc1) && w !== partial);
+    if (!dhHits.length) { _hide(); return; }
+    _showJs(dhHits, dhHits.map(() => 'dh'), partial, ta);
+    return;
+  }
 
   const lc = partial.toLowerCase();
 
-  // Build candidate list: keywords → builtins → user-defined words
+  // Build candidate list: dh-members → dh-globals → keywords → builtins → user words
   const seen = new Set();
   const candidates = [];
 
-  const add = (word, label) => {
+  const addOne = (word, label) => {
     if (seen.has(word)) return;
-    if (!word.toLowerCase().startsWith(lc)) return;
     if (word === partial) return; // already fully typed
     seen.add(word);
     candidates.push({ word, label });
   };
 
-  JS_KEYWORDS.forEach(w => add(w, 'kw'));
-  JS_BUILTINS.forEach(w => add(w, 'api'));
-  _jsUserWords(ta).forEach(w => { if (w.length > 2) add(w, 'word'); });
+  // 1. Dotted member completions — highest priority (e.g. "ReactiveUtils.st")
+  //    _dhMemberMatches already filters by what's typed after the dot
+  const dhMembers = _dhMemberMatches(partial);
+  if (dhMembers.length) {
+    // When we have member matches, only show those (focused completion)
+    dhMembers.forEach(({ word, label }) => addOne(word, label));
+  } else {
+    // 2. No dot — match DH globals, then JS keywords/builtins/user words by prefix
+    const addByPrefix = (word, label) => {
+      if (!word.toLowerCase().startsWith(lc)) return;
+      addOne(word, label);
+    };
+    DH_GLOBALS.forEach(w => addByPrefix(w, 'dh'));
+    // $ instance methods ($watch, $computed, etc.)
+    DH_MEMBERS['$'].forEach(w => addByPrefix(w, 'dh'));
+    JS_KEYWORDS.forEach(w => addByPrefix(w, 'kw'));
+    JS_BUILTINS.forEach(w => addByPrefix(w, 'api'));
+    _jsUserWords(ta).forEach(w => { if (w.length > 2) addByPrefix(w, 'word'); });
+  }
 
   if (!candidates.length) { _hide(); return; }
 
@@ -621,8 +770,8 @@ function _showJs(items, labels, partial, ta) {
     row.appendChild(label);
 
     const type = document.createElement('span');
-    type.className = 'ac-item-type';
-    type.textContent = labels[i];
+    type.className = 'ac-item-type' + (labels[i] === 'dh' ? ' ac-item-type-dh' : '');
+    type.textContent = labels[i] === 'dh' ? 'dh' : labels[i];
     row.appendChild(type);
 
     row.addEventListener('mousedown', e => {

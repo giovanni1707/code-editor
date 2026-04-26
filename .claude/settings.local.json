@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"^\\\\s*\\(function|const|let|var|class\\) \\([\\\\w$]+\\)|\\\\.[\\\\w$]+ =\" \"/c/Users/DELL/Desktop/Project/Code Editor/dom-helpers.js/01_core/01_dh-core.js\")"
+    ]
+  }
+}
