@@ -77,6 +77,7 @@ function init() {
   wireGhostText();
   wireSquiggles();
   wireDhDocs();
+  wireRecorder();
   wireExplorer();
   wireCommandPalette();
   wireGlobalSearch();

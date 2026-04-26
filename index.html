@@ -247,6 +247,8 @@
     }
     .icon-btn:hover { background: var(--bg3); color: var(--txt0); border-color: var(--txt1); }
     .icon-btn.on { background: var(--blue); border-color: var(--blue); color: #fff; }
+    .icon-btn.rec-active { background: var(--red); border-color: var(--red); color: #fff; animation: rec-pulse 1.2s ease-in-out infinite; }
+    @keyframes rec-pulse { 0%,100% { opacity:1; } 50% { opacity:.55; } }
 
     /* ─── Main area ──────────────────────────────────────────────── */
     #main {
@@ -1862,6 +1864,9 @@
   <button class="icon-btn" id="themeBtn"  title="Toggle theme (Ctrl+Shift+T)">◑</button>
   <button class="icon-btn" id="settingsBtn" title="Settings (Ctrl+,)">⚙</button>
   <button class="icon-btn" id="fsBtn"     title="Fullscreen (F11)">⛶</button>
+  <div class="tb-sep"></div>
+  <button class="icon-btn" id="recBtn" title="Record screen">⏺</button>
+  <span id="recTimer" style="display:none;font-size:11px;font-family:var(--font-mono);color:var(--red);min-width:38px;text-align:center">00:00</span>
 </div>
 
 <!-- ═══ MAIN ═════════════════════════════════════════════════════════ -->
@@ -2349,6 +2354,7 @@
 <script src="src/ghost-text.js"></script>
 <script src="src/squiggles.js"></script>
 <script src="src/dh-docs.js"></script>
+<script src="src/recorder.js"></script>
 <script src="src/bracket-colors.js"></script>
 <script src="src/color-picker.js"></script>
 <script src="src/command-palette.js"></script>
