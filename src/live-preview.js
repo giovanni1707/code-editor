@@ -400,6 +400,112 @@ function buildLiveDoc(side) {
 </html>`;
 }
 
+/* ── Raw-mode live preview: build doc with partial typed code ─── */
+function buildLiveDocRaw(side, partialCode) {
+  // Use partial code for the active tab's language; read full content for other tabs.
+  // Do NOT call flushAllPanels here — too expensive per tick; read textarea values directly.
+  const activeId   = state.panelTabs[side].activeId;
+  const activeFile = activeId ? state.project.files[activeId] : null;
+  const activeExt  = activeFile ? activeFile.name.split('.').pop().toLowerCase() : 'html';
+
+  const openIds = state.panelTabs[side].openIds;
+  const files   = openIds.map(id => state.project.files[id]).filter(Boolean);
+  // Read textarea values directly (no flush needed) for non-active tabs
+  const tabs = tabsFor(side);
+
+  const findExt = exts => {
+    if (activeFile && exts.includes(activeExt)) return partialCode;
+    const f = files.find(f => exts.includes(f.name.split('.').pop().toLowerCase()));
+    if (!f) return '';
+    // Try to read from the textarea if it's one of the standard tabs
+    const ext = f.name.split('.').pop().toLowerCase();
+    const tabKey = ext === 'html' || ext === 'htm' ? 'html' : ext === 'css' ? 'css' : ext === 'js' ? 'js' : null;
+    if (tabKey && tabs[tabKey]?.ta) return tabs[tabKey].ta.value;
+    return f.content || '';
+  };
+
+  const isActiveHtml = activeFile && ['html','htm'].includes(activeExt);
+  const htmlFile = isActiveHtml ? activeFile
+    : files.find(f => ['html','htm'].includes(f.name.split('.').pop().toLowerCase()));
+
+  const src = {
+    html:            findExt(['html','htm']),
+    css:             findExt(['css','scss','less']),
+    js:              findExt(['js','ts','mjs','jsx','tsx']),
+    _activeFile:     activeFile,
+    htmlVirtualPath: htmlFile ? _virtualPath(htmlFile) : 'index.html',
+  };
+
+  const bridge = CONSOLE_BRIDGE.replace('__SIDE__', side);
+  const CURSOR_RESET = `<style>a,button,[onclick],label,select,input[type="submit"],input[type="button"],input[type="reset"],input[type="checkbox"],input[type="radio"],input[type="range"],[role="button"],summary{cursor:pointer}</style>`;
+
+  let   html = src.html;
+  const css  = src.css;
+  const js   = src.js;
+
+  if (/<!DOCTYPE|<html/i.test(html)) {
+    let doc = _inlineAssets(html, src.htmlVirtualPath);
+    const replaceCI = (str, search, replacement) => {
+      const idx = str.search(new RegExp(search.replace(/[<>/]/g, c => '\\' + c), 'i'));
+      if (idx === -1) return str;
+      return str.slice(0, idx) + replacement + str.slice(idx + search.length);
+    };
+    if (/<head[\s>]/i.test(doc)) doc = replaceCI(doc, '<head>', `<head>\n${bridge}`);
+    else doc = replaceCI(doc, '<body>', `${bridge}\n<body>`);
+    doc = replaceCI(doc, '</head>', `${CURSOR_RESET}\n</head>`);
+    if (css && !isActiveHtml) doc = replaceCI(doc, '</head>', `<style>\n${css}\n</style>\n</head>`);
+    if (js  && !isActiveHtml) {
+      const _isModule = /^\s*(import\s|export\s|export\s*default)/m.test(js);
+      const _tag = _isModule
+        ? `<script type="module">\n${js}\n\x3C/script>`
+        : `<script>\ntry{\n${js}\n}catch(e){window.__ceLog('error',[e.toString()]);}\n\x3C/script>`;
+      doc = replaceCI(doc, '</body>', `${_tag}\n</body>`);
+    }
+    return doc;
+  }
+
+  const isModule = /^\s*(import\s|export\s|export\s*default)/m.test(js);
+  const scriptTag = isModule
+    ? `<script type="module">\n${js}\n\x3C/script>`
+    : `<script>\ntry {\n${js}\n} catch(e) {\n  window.__ceLog('error', [e.toString()]);\n}\n\x3C/script>`;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  ${bridge}
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 16px; font-size: 14px; }
+    a, button, [onclick], label, select, input[type="submit"], input[type="button"],
+    input[type="reset"], input[type="checkbox"], input[type="radio"], input[type="range"],
+    [role="button"], summary { cursor: pointer; }
+    ${css}
+  </style>
+</head>
+<body>
+  ${html}
+  ${scriptTag}
+</body>
+</html>`;
+}
+
+function renderLivePreviewRaw(side, partialCode) {
+  if (!_rawLiveActive[side]) return;
+  const frame = side === 'left' ? el.previewFrameL : el.previewFrameR;
+  // document.write() replaces content in-place without a full iframe navigation,
+  // making per-character updates smooth and flicker-free.
+  try {
+    const doc = frame.contentDocument;
+    doc.open();
+    doc.write(buildLiveDocRaw(side, partialCode));
+    doc.close();
+  } catch (e) {
+    // Cross-origin fallback (shouldn't happen for same-origin iframes)
+    frame.srcdoc = buildLiveDocRaw(side, partialCode);
+  }
+}
+
 const _previewBlobUrls = { left: null, right: null };
 
 function renderLivePreview(side) {

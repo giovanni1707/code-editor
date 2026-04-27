@@ -34,6 +34,7 @@ const el = {
   runBtnL:       $('runBtnL'),
   pauseBtnL:     $('pauseBtnL'),
   resetBtnL:     $('resetBtnL'),
+  rawLiveBtnL:   $('rawLiveBtnL'),
   playWrapL:     $('playWrapL'),
 
   // Right column
@@ -53,6 +54,7 @@ const el = {
   runBtnR:       $('runBtnR'),
   pauseBtnR:     $('pauseBtnR'),
   resetBtnR:     $('resetBtnR'),
+  rawLiveBtnR:   $('rawLiveBtnR'),
   playWrapR:     $('playWrapR'),
 
   // Resizers

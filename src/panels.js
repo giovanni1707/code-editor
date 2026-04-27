@@ -6,7 +6,8 @@
 
 'use strict';
 
-const _cdTimers = { left: null, right: null };
+const _cdTimers      = { left: null, right: null };
+const _rawLiveActive = { left: false, right: false };
 
 /* ════════════════════════════════════════════════════════════════
    TAB SWITCHING
@@ -62,6 +63,8 @@ function setPanelMode(side, mode) {
   clearTimeout(_cdTimers[side]);
   const _cdEl = document.getElementById(side === 'left' ? 'cdLeft' : 'cdRight');
   if (_cdEl) _cdEl.classList.remove('visible');
+  // Tear down raw+live if we're leaving raw mode
+  if (_rawLiveActive[side] && mode !== 'raw') _setRawLive(side, false);
   removeDynStyles(side);
   state.panelMode[side] = mode;
   // Mutating state.session triggers auto-save via reactive session effect
@@ -145,6 +148,54 @@ function setPanelMode(side, mode) {
   }
 }
 
+/* ── Raw + Live preview split ────────────────────────────────── */
+function _setRawLive(side, on) {
+  _rawLiveActive[side] = on;
+
+  const col  = side === 'left' ? el.colLeft  : el.colRight;
+  const lp   = side === 'left' ? el.livePreviewL : el.livePreviewR;
+  const btn  = side === 'left' ? el.rawLiveBtnL  : el.rawLiveBtnR;
+  const wrap = side === 'left' ? el.liveWrapL    : el.liveWrapR;
+
+  if (on) {
+    col.classList.add('live-split');
+    lp.classList.add('visible');
+    if (btn) btn.classList.add('raw-live-on');
+    // Render current typed state immediately (partial if typewriter is running)
+    const tw = state.tw[side];
+    if (tw && tw.index > 0 && !tw.isDone) {
+      const t = activeTab(side);
+      const partialCode = t.ta.value.slice(0, tw.index);
+      renderLivePreviewRaw(side, partialCode);
+    } else {
+      scheduleLivePreview(side);
+    }
+  } else {
+    col.classList.remove('live-split');
+    lp.classList.remove('visible');
+    if (btn) btn.classList.remove('raw-live-on');
+    // Reset pane sizes
+    const editorPane = wrap.querySelector('.panel-editor-pane');
+    if (editorPane) editorPane.style.flex = '';
+    lp.style.flex = '';
+  }
+}
+
+function toggleRawLive(side) {
+  if (state.panelMode[side] !== 'raw') return;
+  _setRawLive(side, !_rawLiveActive[side]);
+}
+
+/* Public: called by typewriter tick to refresh live preview in raw+live mode */
+function rawLiveRefresh(side, partialCode) {
+  if (!_rawLiveActive[side]) return;
+  if (partialCode !== undefined) {
+    renderLivePreviewRaw(side, partialCode);
+  } else {
+    scheduleLivePreview(side);
+  }
+}
+
 /* ── Countdown overlay before autoplay ──────────────────────── */
 function _showCountdown(side, seconds, onDone) {
   const overlay = document.getElementById(side === 'left' ? 'cdLeft' : 'cdRight');
@@ -173,9 +224,10 @@ function _showCountdown(side, seconds, onDone) {
    PLAYBACK WIRING  (per side)
 ════════════════════════════════════════════════════════════════ */
 function wirePlayback(side) {
-  const runBtn   = side === 'left' ? el.runBtnL   : el.runBtnR;
-  const pauseBtn = side === 'left' ? el.pauseBtnL : el.pauseBtnR;
-  const resetBtn = side === 'left' ? el.resetBtnL : el.resetBtnR;
+  const runBtn      = side === 'left' ? el.runBtnL      : el.runBtnR;
+  const pauseBtn    = side === 'left' ? el.pauseBtnL    : el.pauseBtnR;
+  const resetBtn    = side === 'left' ? el.resetBtnL    : el.resetBtnR;
+  const rawLiveBtn  = side === 'left' ? el.rawLiveBtnL  : el.rawLiveBtnR;
 
   runBtn.addEventListener('click', () => {
     const m = state.panelMode[side];
@@ -184,6 +236,7 @@ function wirePlayback(side) {
   });
   pauseBtn.addEventListener('click', () => togglePause(side));
   resetBtn.addEventListener('click', () => restartTw(side));
+  rawLiveBtn?.addEventListener('click', () => toggleRawLive(side));
 }
 
 

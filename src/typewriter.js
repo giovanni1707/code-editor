@@ -66,11 +66,13 @@ function startRaw(side) {
   function tick() {
     if (tw.isPaused) return;
     if (tw.index <= code.length) {
-      codeEl.innerHTML = Prism.highlight(code.slice(0, tw.index), grammar, prism);
+      const partial = code.slice(0, tw.index);
+      codeEl.innerHTML = Prism.highlight(partial, grammar, prism);
       if (state.settings.semiPause && tw.index > 0 && code[tw.index - 1] === ';') {
         semiPauseRestart(side, tick);
       }
       tw.index++;
+      rawLiveRefresh(side, partial);
     } else {
       clearInterval(tw.interval);
       tw.isDone = true;
@@ -78,6 +80,7 @@ function startRaw(side) {
       prog.style.display = '';
       out.querySelector('.tw-caret')?.remove();
       updatePauseBtn(side);
+      rawLiveRefresh(side, code);
     }
   }
 

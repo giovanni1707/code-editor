@@ -921,6 +921,7 @@
     .col-tabs-end .play-btn.run   { background: var(--green); border-color: var(--green); color: #fff; }
     .col-tabs-end .play-btn.run:hover { opacity: .85; }
     .col-tabs-end .play-btn.paused { background: var(--yellow); border-color: var(--yellow); color: #000; }
+    .col-tabs-end .play-btn.raw-live-on { background: var(--blue); border-color: var(--blue); color: #fff; }
     .console-toggle.active { background: var(--bg0); border-color: var(--txt2); color: var(--txt0); }
 
     /* ─── Find & Replace bar ────────────────────────────────────── */
@@ -1967,6 +1968,8 @@
               <button class="play-btn run" id="runBtnL"   title="Run">▶ Run</button>
               <button class="play-btn"     id="pauseBtnL" title="Pause (Space)">⏸ Pause</button>
               <button class="play-btn"     id="resetBtnL" title="Restart (R)">↺</button>
+              <div class="col-tab-sep"></div>
+              <button class="play-btn" id="rawLiveBtnL" title="Toggle live preview alongside Raw output">⚡ Preview</button>
             </div>
             <div class="col-tab-sep"></div>
             <button class="col-tab-btn" id="findBtnL"  title="Find &amp; Replace (Ctrl+F / Ctrl+H)">&#x1F50D;</button>
@@ -2108,6 +2111,8 @@
               <button class="play-btn run" id="runBtnR"   title="Run">▶ Run</button>
               <button class="play-btn"     id="pauseBtnR" title="Pause (Space)">⏸ Pause</button>
               <button class="play-btn"     id="resetBtnR" title="Restart (R)">↺</button>
+              <div class="col-tab-sep"></div>
+              <button class="play-btn" id="rawLiveBtnR" title="Toggle live preview alongside Raw output">⚡ Preview</button>
             </div>
             <div class="col-tab-sep"></div>
             <button class="col-tab-btn" id="findBtnR"  title="Find &amp; Replace (Ctrl+F / Ctrl+H)">&#x1F50D;</button>
