@@ -48,7 +48,7 @@ function uid() {
 
 /* ── Typewriter state factory ────────────────────────────────── */
 function mkTw() {
-  return { interval: null, index: 0, isPaused: false, isDone: false, segs: [], styles: '' };
+  return { interval: null, index: 0, isPaused: false, isDone: false, segs: [], styles: '', resume: null };
 }
 
 /* ── Application state ───────────────────────────────────────── */
@@ -92,6 +92,7 @@ const state = ReactiveUtils.state({
     autocomplete: true,  // show autocomplete dropdown while typing
     squiggles:    true,  // show red wavy underlines on JS syntax errors
     dhDocs:       true,  // show DOM Helpers API tooltip on hover/cursor
+    humanTyping:  false, // randomise per-char delay to mimic real human typing
   },
 
   /* session: panel UI state that persists between reloads */
@@ -233,6 +234,26 @@ function speedMs() {
   return Math.round(180 / Math.pow(state.settings.speed, 1.38));
 }
 
+/* ── Human typing delay ──────────────────────────────────────── */
+// Returns a per-character delay (ms) that varies naturally:
+//   • base ± up to 60% random jitter
+//   • longer pause after sentence-ending punctuation (. ! ?)
+//   • medium pause after comma / colon / semicolon
+//   • slight hesitation at the start of a new word or line
+function humanDelay(prevChar, char) {
+  const base = speedMs();
+  // Random jitter: multiply base by 0.4 – 1.6
+  let ms = base * (0.4 + Math.random() * 1.2);
+
+  // Pause after the previous character is typed (we're about to type `char`)
+  if (prevChar === '\n') ms += base * (1.5 + Math.random() * 2);   // newline → think
+  else if (/[.!?]/.test(prevChar)) ms += base * (1.2 + Math.random() * 1.5); // end of sentence
+  else if (/[,;:]/.test(prevChar)) ms += base * (0.6 + Math.random() * 0.8); // mid-sentence pause
+  else if (prevChar === ' ' && char && char !== ' ') ms += base * (0.2 + Math.random() * 0.4); // new word
+
+  return Math.round(ms);
+}
+
 /* ── Reactive effects — wired after init() in app.js ────────── */
 function setupReactivity() {
   const { effect } = ReactiveUtils;
@@ -242,7 +263,7 @@ function setupReactivity() {
     const s = state.settings;
     // Access each property so the effect tracks all of them
     const _snap = s.theme + s.fontSize + s.lineNums + s.wordWrap +
-                  s.autoPlay + s.autoPlayDelay + s.semiPause + s.speed + s.tabSize + s.minimap + s.autosave + s.autocomplete + s.squiggles + s.dhDocs;
+                  s.autoPlay + s.autoPlayDelay + s.semiPause + s.speed + s.tabSize + s.minimap + s.autosave + s.autocomplete + s.squiggles + s.dhDocs + s.humanTyping;
     saveSettings();
   });
 
@@ -376,6 +397,8 @@ function setupReactivity() {
     if (sqEl) sqEl.checked = state.settings.squiggles;
     const dhEl = document.getElementById('stgDhDocs');
     if (dhEl) dhEl.checked = state.settings.dhDocs;
+    const htEl = document.getElementById('stgHumanTyping');
+    if (htEl) htEl.checked = state.settings.humanTyping;
   });
 
   // ── Minimap disabled ─────────────────────────────────────────

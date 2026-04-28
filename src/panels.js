@@ -211,7 +211,8 @@ function _showCountdown(side, seconds, onDone) {
     remaining--;
     if (remaining <= 0) {
       overlay.classList.remove('visible');
-      onDone();
+      // Extra 2s buffer after countdown reaches 0 before typing begins
+      _cdTimers[side] = setTimeout(onDone, 2000);
     } else {
       overlay.textContent = remaining;
       _cdTimers[side] = setTimeout(tick, 1000);

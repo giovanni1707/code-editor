@@ -10,6 +10,7 @@
 /* ── Stop ────────────────────────────────────────────────────── */
 function stopTw(side) {
   clearInterval(state.tw[side].interval);
+  clearTimeout(state.tw[side].interval);
   state.tw[side] = mkTw();
 }
 
@@ -23,6 +24,8 @@ function togglePause(side) {
   const tw = state.tw[side];
   tw.isPaused = !tw.isPaused;
   updatePauseBtn(side);
+  // Human-typing mode uses recursive setTimeout — resume by re-scheduling
+  if (!tw.isPaused && tw.resume) tw.resume();
 }
 
 function updatePauseBtn(side) {
@@ -33,13 +36,13 @@ function updatePauseBtn(side) {
 }
 
 /* ── Semi-colon pause helper ─────────────────────────────────── */
-function semiPauseRestart(side, tickFn) {
+// scheduleFn() must set tw.interval to the next timeout/interval handle
+function semiPauseRestart(side, scheduleFn) {
   const tw = state.tw[side];
   clearInterval(tw.interval);
+  clearTimeout(tw.interval);
   setTimeout(() => {
-    if (!tw.isPaused && !tw.isDone) {
-      tw.interval = setInterval(tickFn, speedMs());
-    }
+    if (!tw.isPaused && !tw.isDone) scheduleFn();
   }, 550);
 }
 
@@ -63,18 +66,32 @@ function startRaw(side) {
   out.innerHTML = `<pre><code class="language-${prism}"></code></pre><span class="tw-caret"></span>`;
   const codeEl = out.querySelector('code');
 
+  function schedule() {
+    if (tw.isPaused) return; // chain suspended; togglePause will call schedule via tw.resume
+    const delay = state.settings.humanTyping
+      ? humanDelay(code[tw.index - 1], code[tw.index])
+      : speedMs();
+    tw.interval = setTimeout(tick, delay);
+  }
+
+  // Expose so togglePause can restart the chain after resume
+  tw.resume = schedule;
+
   function tick() {
     if (tw.isPaused) return;
     if (tw.index <= code.length) {
       const partial = code.slice(0, tw.index);
       codeEl.innerHTML = Prism.highlight(partial, grammar, prism);
       if (state.settings.semiPause && tw.index > 0 && code[tw.index - 1] === ';') {
-        semiPauseRestart(side, tick);
+        semiPauseRestart(side, schedule);
+        tw.index++;
+        rawLiveRefresh(side, partial);
+        return;
       }
       tw.index++;
       rawLiveRefresh(side, partial);
+      schedule();
     } else {
-      clearInterval(tw.interval);
       tw.isDone = true;
       codeEl.innerHTML = Prism.highlight(code, grammar, prism);
       prog.style.display = '';
@@ -84,7 +101,7 @@ function startRaw(side) {
     }
   }
 
-  tw.interval = setInterval(tick, speedMs());
+  schedule();
 }
 
 /* ════════════════════════════════════════════════════════════════
