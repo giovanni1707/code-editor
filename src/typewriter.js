@@ -12,6 +12,8 @@ function stopTw(side) {
   clearInterval(state.tw[side].interval);
   clearTimeout(state.tw[side].interval);
   state.tw[side] = mkTw();
+  const badge = document.getElementById(side === 'left' ? 'stepBadgeL' : 'stepBadgeR');
+  if (badge) badge.style.display = 'none';
 }
 
 function stopAllTw() {
@@ -245,4 +247,75 @@ function startTw(side) {
 function restartTw(side) {
   progressEl(side).style.width = '0%';
   startTw(side);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   MANUAL STEP MODE  (Ctrl/Cmd + Space to activate, Space to step)
+════════════════════════════════════════════════════════════════ */
+function _updateStepBadge(side) {
+  const badge = document.getElementById(side === 'left' ? 'stepBadgeL' : 'stepBadgeR');
+  if (badge) badge.style.display = state.tw[side].stepMode ? '' : 'none';
+}
+
+function toggleStepMode(side) {
+  if (state.panelMode[side] !== 'raw') return;
+  const tw = state.tw[side];
+
+  if (tw.stepMode) {
+    // Deactivate — leave index where it is, resume auto-play paused
+    tw.stepMode = false;
+    _updateStepBadge(side);
+    return;
+  }
+
+  // Activate step mode: stop any running auto-typewriter, init the output surface
+  stopTw(side);
+  const t       = activeTab(side);
+  const lang    = state.activeTab[side];
+  const prism   = LANG_META[lang].prism;
+  const grammar = Prism.languages[prism] || Prism.languages.javascript;
+  const code    = t.ta.value;
+  const out     = outEl(side);
+  const prog    = progressEl(side);
+
+  // Re-fetch tw after stopTw reset it
+  const freshTw = state.tw[side];
+  freshTw.stepMode = true;
+  freshTw.isDone   = false;
+
+  // Store the render context on the tw object so stepChar can reach it
+  freshTw._stepCtx = { code, grammar, prism, out, prog };
+
+  prog.style.width   = '0%';
+  prog.style.display = 'none';
+  out.innerHTML = `<pre><code class="language-${prism}"></code></pre><span class="tw-caret"></span>`;
+
+  _updateStepBadge(side);
+}
+
+function stepChar(side) {
+  if (state.panelMode[side] !== 'raw') return;
+  const tw = state.tw[side];
+  if (!tw.stepMode || !tw._stepCtx) return;
+
+  const { code, grammar, prism, out, prog } = tw._stepCtx;
+  const codeEl = out.querySelector('code');
+  if (!codeEl) return;
+
+  if (tw.index <= code.length) {
+    const partial = code.slice(0, tw.index);
+    codeEl.innerHTML = Prism.highlight(partial, grammar, prism);
+    rawLiveRefresh(side, partial);
+    tw.index++;
+  }
+
+  if (tw.index > code.length) {
+    tw.isDone    = true;
+    tw.stepMode  = false;
+    codeEl.innerHTML = Prism.highlight(code, grammar, prism);
+    prog.style.display = '';
+    out.querySelector('.tw-caret')?.remove();
+    rawLiveRefresh(side, code);
+    _updateStepBadge(side);
+  }
 }

@@ -923,6 +923,17 @@
     .col-tabs-end .play-btn.paused { background: var(--yellow); border-color: var(--yellow); color: #000; }
     .col-tabs-end .play-btn.raw-live-on { background: var(--blue); border-color: var(--blue); color: #fff; }
     .console-toggle.active { background: var(--bg0); border-color: var(--txt2); color: var(--txt0); }
+    .step-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600;
+      background: var(--purple, #a371f7); color: #fff;
+      animation: step-pulse 1.4s ease-in-out infinite;
+      pointer-events: none; user-select: none;
+    }
+    @keyframes step-pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: .55; }
+    }
 
     /* ─── Find & Replace bar ────────────────────────────────────── */
     .find-bar {
@@ -1970,6 +1981,7 @@
               <button class="play-btn"     id="resetBtnL" title="Restart (R)">↺</button>
               <div class="col-tab-sep"></div>
               <button class="play-btn" id="rawLiveBtnL" title="Toggle live preview alongside Raw output">⚡ Preview</button>
+              <span class="step-badge" id="stepBadgeL" style="display:none" title="Step mode — press Space to type one character">⌨ Step</span>
             </div>
             <div class="col-tab-sep"></div>
             <button class="col-tab-btn" id="findBtnL"  title="Find &amp; Replace (Ctrl+F / Ctrl+H)">&#x1F50D;</button>
@@ -2113,6 +2125,7 @@
               <button class="play-btn"     id="resetBtnR" title="Restart (R)">↺</button>
               <div class="col-tab-sep"></div>
               <button class="play-btn" id="rawLiveBtnR" title="Toggle live preview alongside Raw output">⚡ Preview</button>
+              <span class="step-badge" id="stepBadgeR" style="display:none" title="Step mode — press Space to type one character">⌨ Step</span>
             </div>
             <div class="col-tab-sep"></div>
             <button class="col-tab-btn" id="findBtnR"  title="Find &amp; Replace (Ctrl+F / Ctrl+H)">&#x1F50D;</button>

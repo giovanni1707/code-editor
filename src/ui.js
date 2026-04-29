@@ -301,10 +301,24 @@ function wireKeyboard() {
       return;
     }
 
+    // Ctrl/Cmd + Space — toggle manual step mode on the active raw panel
+    if (ctrl && e.key === ' ' && !inTA && !inAnyInput) {
+      e.preventDefault();
+      const side = _activeSide();
+      if (state.panelMode[side] === 'raw') toggleStepMode(side);
+      return;
+    }
+
     // Space / R / Enter — typewriter controls only when no input field has focus
     if (!inTA && !inAnyInput) {
       if (e.key === ' ') {
         e.preventDefault();
+        // If either panel is in step mode, advance its next character
+        let stepped = false;
+        if (state.tw.left.stepMode)  { stepChar('left');  stepped = true; }
+        if (state.tw.right.stepMode) { stepChar('right'); stepped = true; }
+        if (stepped) return;
+        // Otherwise normal pause/resume
         if (state.panelMode.left  === 'raw') togglePause('left');
         if (state.panelMode.right === 'raw') togglePause('right');
         return;

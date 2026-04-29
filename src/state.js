@@ -48,7 +48,7 @@ function uid() {
 
 /* ── Typewriter state factory ────────────────────────────────── */
 function mkTw() {
-  return { interval: null, index: 0, isPaused: false, isDone: false, segs: [], styles: '', resume: null };
+  return { interval: null, index: 0, isPaused: false, isDone: false, segs: [], styles: '', resume: null, stepMode: false };
 }
 
 /* ── Application state ───────────────────────────────────────── */
