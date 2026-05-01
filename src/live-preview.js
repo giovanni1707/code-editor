@@ -436,45 +436,32 @@ function buildLiveDocRaw(side, partialCode) {
     htmlVirtualPath: htmlFile ? _virtualPath(htmlFile) : 'index.html',
   };
 
-  const bridge = CONSOLE_BRIDGE.replace('__SIDE__', side);
   const CURSOR_RESET = `<style>a,button,[onclick],label,select,input[type="submit"],input[type="button"],input[type="reset"],input[type="checkbox"],input[type="radio"],input[type="range"],[role="button"],summary{cursor:pointer}</style>`;
 
-  let   html = src.html;
-  const css  = src.css;
-  const js   = src.js;
+  const css = src.css;
+  const js  = src.js;
 
-  if (/<!DOCTYPE|<html/i.test(html)) {
-    let doc = _inlineAssets(html, src.htmlVirtualPath);
-    const replaceCI = (str, search, replacement) => {
-      const idx = str.search(new RegExp(search.replace(/[<>/]/g, c => '\\' + c), 'i'));
-      if (idx === -1) return str;
-      return str.slice(0, idx) + replacement + str.slice(idx + search.length);
-    };
-    if (/<head[\s>]/i.test(doc)) doc = replaceCI(doc, '<head>', `<head>\n${bridge}`);
-    else doc = replaceCI(doc, '<body>', `${bridge}\n<body>`);
-    doc = replaceCI(doc, '</head>', `${CURSOR_RESET}\n</head>`);
-    if (css && !isActiveHtml) doc = replaceCI(doc, '</head>', `<style>\n${css}\n</style>\n</head>`);
-    if (js  && !isActiveHtml) {
-      const _isModule = /^\s*(import\s|export\s|export\s*default)/m.test(js);
-      const _tag = _isModule
-        ? `<script type="module">\n${js}\n\x3C/script>`
-        : `<script>\ntry{\n${js}\n}catch(e){window.__ceLog('error',[e.toString()]);}\n\x3C/script>`;
-      doc = replaceCI(doc, '</body>', `${_tag}\n</body>`);
-    }
-    return doc;
-  }
+  // Strip any trailing incomplete tag from the partial HTML so the browser's
+  // HTML parser never enters a broken state (e.g. an unclosed <script attribute
+  // would cause everything after it to be treated as script text / raw data).
+  const safeHtml = src.html.replace(/<[^>]*$/, '');
 
+  // No CONSOLE_BRIDGE during raw typing — it's a <script> block and if the
+  // partial user code contains an unclosed tag the parser corruption would
+  // render bridge source as visible text. Console output is not useful mid-type.
   const isModule = /^\s*(import\s|export\s|export\s*default)/m.test(js);
-  const scriptTag = isModule
-    ? `<script type="module">\n${js}\n\x3C/script>`
-    : `<script>\ntry {\n${js}\n} catch(e) {\n  window.__ceLog('error', [e.toString()]);\n}\n\x3C/script>`;
+  const scriptTag = js
+    ? (isModule
+        ? `<script type="module">\n${js}\n\x3C/script>`
+        : `<script>\ntry {\n${js}\n} catch(e) {}\n\x3C/script>`)
+    : '';
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  ${bridge}
+  ${CURSOR_RESET}
   <style>
     body { font-family: system-ui, sans-serif; padding: 16px; font-size: 14px; }
     a, button, [onclick], label, select, input[type="submit"], input[type="button"],
@@ -484,26 +471,30 @@ function buildLiveDocRaw(side, partialCode) {
   </style>
 </head>
 <body>
-  ${html}
+  ${safeHtml}
   ${scriptTag}
 </body>
 </html>`;
 }
 
+const _rawLiveDebounce  = { left: null, right: null };
+const _rawLivePending   = { left: null, right: null };
+
 function renderLivePreviewRaw(side, partialCode) {
   if (!_rawLiveActive[side]) return;
-  const frame = side === 'left' ? el.previewFrameL : el.previewFrameR;
-  // document.write() replaces content in-place without a full iframe navigation,
-  // making per-character updates smooth and flicker-free.
-  try {
-    const doc = frame.contentDocument;
-    doc.open();
-    doc.write(buildLiveDocRaw(side, partialCode));
-    doc.close();
-  } catch (e) {
-    // Cross-origin fallback (shouldn't happen for same-origin iframes)
-    frame.srcdoc = buildLiveDocRaw(side, partialCode);
-  }
+  // Buffer the latest partial code and flush after 60 ms — batches per-character
+  // calls into one srcdoc write, preventing the streaming-parser artifact where
+  // injected <script> content appears as visible body text via document.write().
+  _rawLivePending[side] = partialCode;
+  if (_rawLiveDebounce[side]) return;
+  _rawLiveDebounce[side] = setTimeout(() => {
+    _rawLiveDebounce[side] = null;
+    const code  = _rawLivePending[side];
+    _rawLivePending[side] = null;
+    if (!_rawLiveActive[side]) return;
+    const frame = side === 'left' ? el.previewFrameL : el.previewFrameR;
+    frame.srcdoc = buildLiveDocRaw(side, code);
+  }, 60);
 }
 
 const _previewBlobUrls = { left: null, right: null };
