@@ -477,24 +477,119 @@ function buildLiveDocRaw(side, partialCode) {
 </html>`;
 }
 
-const _rawLiveDebounce  = { left: null, right: null };
-const _rawLivePending   = { left: null, right: null };
+// Shell written once into the iframe — subsequent updates only touch <body>.
+const _rawShellReady = { left: false, right: false };
+
+function _rawLiveShell(css) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 16px; font-size: 14px;
+           margin: 0; }
+    a, button, [onclick], label, select, input[type="submit"], input[type="button"],
+    input[type="reset"], input[type="checkbox"], input[type="radio"], input[type="range"],
+    [role="button"], summary { cursor: pointer; }
+    ${css}
+  </style>
+</head>
+<body></body>
+</html>`;
+}
+
+function _buildRawBody(safeHtml, css, js) {
+  // Inline CSS via a <style> tag so it updates without a reload
+  const styleTag = css ? `<style>${css}</style>` : '';
+  const isModule = /^\s*(import\s|export\s|export\s*default)/m.test(js);
+  const scriptTag = js
+    ? (isModule
+        ? `<script type="module">\n${js}\n\x3C/script>`
+        : `<script>\ntry{\n${js}\n}catch(e){}\n\x3C/script>`)
+    : '';
+  return `${styleTag}${safeHtml}${scriptTag}`;
+}
+
+const _rawLivePending = { left: null, right: null };
+const _rawLiveRaf    = { left: null, right: null };
 
 function renderLivePreviewRaw(side, partialCode) {
   if (!_rawLiveActive[side]) return;
-  // Buffer the latest partial code and flush after 60 ms — batches per-character
-  // calls into one srcdoc write, preventing the streaming-parser artifact where
-  // injected <script> content appears as visible body text via document.write().
+
+  // Always store the latest — only the most recent matters
   _rawLivePending[side] = partialCode;
-  if (_rawLiveDebounce[side]) return;
-  _rawLiveDebounce[side] = setTimeout(() => {
-    _rawLiveDebounce[side] = null;
-    const code  = _rawLivePending[side];
+  if (_rawLiveRaf[side]) return; // already scheduled
+
+  _rawLiveRaf[side] = requestAnimationFrame(() => {
+    _rawLiveRaf[side] = null;
+    const code = _rawLivePending[side];
     _rawLivePending[side] = null;
     if (!_rawLiveActive[side]) return;
+
     const frame = side === 'left' ? el.previewFrameL : el.previewFrameR;
-    frame.srcdoc = buildLiveDocRaw(side, code);
-  }, 60);
+
+    // Collect supporting CSS from other open tabs
+    const openIds = state.panelTabs[side].openIds;
+    const files   = openIds.map(id => state.project.files[id]).filter(Boolean);
+    const tabs    = tabsFor(side);
+    const activeId  = state.panelTabs[side].activeId;
+    const activeFile = activeId ? state.project.files[activeId] : null;
+    const activeExt  = activeFile ? activeFile.name.split('.').pop().toLowerCase() : 'html';
+    const isTypingHtml = ['html','htm'].includes(activeExt);
+
+    const getCss = () => {
+      if (!isTypingHtml) return code; // typing CSS directly
+      const f = files.find(f => ['css','scss','less'].includes(f.name.split('.').pop().toLowerCase()));
+      if (!f) return '';
+      const tabKey = f.name.split('.').pop().toLowerCase() === 'css' ? 'css' : null;
+      return tabKey && tabs[tabKey]?.ta ? tabs[tabKey].ta.value : f.content || '';
+    };
+    const getJs = () => {
+      if (['js','ts','mjs'].includes(activeExt)) return code;
+      const f = files.find(f => ['js','ts','mjs'].includes(f.name.split('.').pop().toLowerCase()));
+      if (!f) return '';
+      return tabs.js?.ta ? tabs.js.ta.value : f.content || '';
+    };
+
+    const css = getCss();
+    const js  = isTypingHtml ? getJs() : '';
+    const safeHtml = isTypingHtml ? code.replace(/<[^>]*$/, '') : '';
+
+    // First call: write the shell via srcdoc (one navigation, sets up the document)
+    if (!_rawShellReady[side]) {
+      _rawShellReady[side] = true;
+      frame.srcdoc = _rawLiveShell(css);
+      // Wait for load then patch body
+      frame.addEventListener('load', function onLoad() {
+        frame.removeEventListener('load', onLoad);
+        try {
+          frame.contentDocument.body.innerHTML = _buildRawBody(safeHtml, css, js);
+        } catch (_) {}
+      }, { once: true });
+      return;
+    }
+
+    // Subsequent calls: patch body directly — zero navigation, zero flicker
+    try {
+      const doc = frame.contentDocument;
+      if (doc && doc.body) {
+        doc.body.innerHTML = _buildRawBody(safeHtml, css, js);
+      } else {
+        // Shell was lost (e.g. after _setRawLive toggled) — reinitialise
+        _rawShellReady[side] = false;
+        renderLivePreviewRaw(side, code);
+      }
+    } catch (_) {
+      _rawShellReady[side] = false;
+    }
+  });
+}
+
+// Called when raw+live is toggled off — reset shell flag so next enable re-initialises
+function _resetRawShell(side) {
+  _rawShellReady[side] = false;
+  if (_rawLiveRaf[side]) { cancelAnimationFrame(_rawLiveRaf[side]); _rawLiveRaf[side] = null; }
 }
 
 const _previewBlobUrls = { left: null, right: null };

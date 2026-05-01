@@ -178,6 +178,8 @@ function _setRawLive(side, on) {
     const editorPane = wrap.querySelector('.panel-editor-pane');
     if (editorPane) editorPane.style.flex = '';
     lp.style.flex = '';
+    // Reset shell so next enable re-initialises the iframe cleanly
+    if (typeof _resetRawShell === 'function') _resetRawShell(side);
   }
 }
 
