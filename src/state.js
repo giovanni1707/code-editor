@@ -139,7 +139,25 @@ function loadProject() {
     if (!p) return;
     if (p.files)   Object.assign(state.project.files,   p.files);
     if (p.folders) Object.assign(state.project.folders, p.folders);
+    // Migrate: assign order to items that predate the order field
+    _migrateOrder(state.project.files);
+    _migrateOrder(state.project.folders);
   } catch (_) {}
+}
+
+function _migrateOrder(collection) {
+  // Group by parentId, sort alphabetically within each group, assign order
+  const groups = {};
+  Object.values(collection).forEach(item => {
+    const key = item.parentId ?? '__root__';
+    (groups[key] = groups[key] || []).push(item);
+  });
+  Object.values(groups).forEach(items => {
+    items.sort((a, b) => a.name.localeCompare(b.name));
+    items.forEach((item, i) => {
+      if (item.order == null) item.order = (i + 1) * 1000;
+    });
+  });
 }
 
 function savePanelTabs() {

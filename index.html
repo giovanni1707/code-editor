@@ -1406,6 +1406,12 @@
     /* ─── Drag and drop ──────────────────────────────────────────── */
     .explorer-item.dragging   { opacity: .4; }
     .explorer-item.drag-over  { background: var(--bg3); outline: 1px solid var(--blue); outline-offset: -1px; }
+    .explorer-drop-line {
+      position: absolute; right: 0; height: 2px;
+      background: var(--blue); border-radius: 1px;
+      pointer-events: none; z-index: 10;
+    }
+    #sidebarFileList { position: relative; }
 
     /* External file/folder drop onto sidebar */
     #sidebar.ext-drag-over {

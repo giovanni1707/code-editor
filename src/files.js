@@ -52,12 +52,18 @@ function _starterContent(name) {
   }
 }
 
+function _nextOrder(parentId, collection) {
+  const siblings = Object.values(collection).filter(x => x.parentId === parentId);
+  return siblings.length ? Math.max(...siblings.map(x => x.order ?? 0)) + 1000 : 1000;
+}
+
 function createFile(name, parentId = null) {
   name = name.trim();
   if (!name) return null;
   name = _uniqueFileName(name, parentId);
   const id = uid();
-  state.project.files[id] = { id, name, content: _starterContent(name), parentId };
+  const order = _nextOrder(parentId, state.project.files);
+  state.project.files[id] = { id, name, content: _starterContent(name), parentId, order };
   state.project._v++;
   return id;
 }
@@ -104,7 +110,8 @@ function createFolder(name, parentId = null) {
   if (!name) return null;
   name = _uniqueFolderName(name, parentId);
   const id = uid();
-  state.project.folders[id] = { id, name, parentId, collapsed: false };
+  const order = _nextOrder(parentId, state.project.folders);
+  state.project.folders[id] = { id, name, parentId, collapsed: false, order };
   state.project._v++; // notify reactive effects (add not tracked by proxy)
   return id;
 }
@@ -169,14 +176,16 @@ function getTreeFlat() {
 }
 
 function _walkTree(parentId, depth, result) {
-  // Folders first (sorted by name), then files (sorted by name)
+  // Folders first, then files — each group sorted by order (fallback: name)
+  const _byOrder = (a, b) => (a.order ?? 0) - (b.order ?? 0) || a.name.localeCompare(b.name);
+
   const folders = Object.values(state.project.folders)
     .filter(f => f.parentId === parentId)
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .sort(_byOrder);
 
   const files = Object.values(state.project.files)
     .filter(f => f.parentId === parentId)
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .sort(_byOrder);
 
   folders.forEach(folder => {
     result.push({ type: 'folder', item: folder, depth });

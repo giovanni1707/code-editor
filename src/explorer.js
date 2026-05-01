@@ -73,94 +73,166 @@ function renderExplorer() {
   });
 }
 
-/* ── Drag-and-drop: move file or folder into another folder ──── */
+/* ── Drag-and-drop: reorder and move files/folders ───────────── */
 let _dragId   = null;   // id being dragged
 let _dragType = null;   // 'file' | 'folder'
+
+// Drop-indicator line shown between items
+let _dropLine = null;
+function _getDropLine() {
+  if (!_dropLine) {
+    _dropLine = document.createElement('div');
+    _dropLine.className = 'explorer-drop-line';
+  }
+  return _dropLine;
+}
+function _hideDropLine() {
+  _dropLine?.remove();
+}
 
 function _onDragStart(e, id, type) {
   _dragId   = id;
   _dragType = type;
   e.dataTransfer.effectAllowed = 'move';
   e.dataTransfer.setData('text/plain', id);
-  e.currentTarget.classList.add('dragging');
+  // Defer adding class so the dragged ghost still looks normal
+  requestAnimationFrame(() => e.currentTarget.classList.add('dragging'));
 }
 
 function _onDragEnd(e) {
   e.currentTarget.classList.remove('dragging');
   document.querySelectorAll('.explorer-item.drag-over').forEach(el2 => el2.classList.remove('drag-over'));
+  _hideDropLine();
   _dragId = _dragType = null;
 }
 
-function _onDragOver(e, targetFolderId) {
+// Returns 'before' | 'into' | 'after' based on cursor position within the row.
+// 'into' is only possible on folder rows (the middle 40%).
+function _dropZone(e, row) {
+  const rect = row.getBoundingClientRect();
+  const rel  = (e.clientY - rect.top) / rect.height;
+  const isFolder = row.classList.contains('explorer-folder');
+  if (rel < 0.3) return 'before';
+  if (rel > 0.7) return 'after';
+  return isFolder ? 'into' : (rel < 0.5 ? 'before' : 'after');
+}
+
+function _onItemDragOver(e, row, id, type) {
   if (!_dragId) return;
-  // Prevent dropping a folder into itself or its own descendant
-  if (_dragType === 'folder' && _isSelfOrDescendant(_dragId, targetFolderId)) return;
-  // Prevent no-op (already in this folder)
-  const item = _dragType === 'file' ? state.project.files[_dragId] : state.project.folders[_dragId];
-  if (item && item.parentId === targetFolderId) return;
+  // Prevent dropping a folder into itself or a descendant
+  if (_dragType === 'folder' && _isSelfOrDescendant(_dragId, id)) return;
+
   e.preventDefault();
   e.dataTransfer.dropEffect = 'move';
-  e.currentTarget.classList.add('drag-over');
+
+  const zone = _dropZone(e, row);
+
+  // Show drop-into highlight for folder middle zone
+  if (zone === 'into') {
+    row.classList.add('drag-over');
+    _hideDropLine();
+    return;
+  }
+  row.classList.remove('drag-over');
+
+  // Position drop indicator line
+  const line = _getDropLine();
+  const list = document.getElementById('sidebarFileList');
+  const listRect = list.getBoundingClientRect();
+  const rowRect  = row.getBoundingClientRect();
+  const y = (zone === 'before' ? rowRect.top : rowRect.bottom) - listRect.top + list.scrollTop;
+  line.style.top  = y + 'px';
+  line.style.left = row.style.paddingLeft; // align with item indent
+  if (!line.parentNode) list.appendChild(line);
 }
 
-function _onDragLeave(e) {
-  e.currentTarget.classList.remove('drag-over');
+function _onItemDragLeave(e, row) {
+  row.classList.remove('drag-over');
+  // Only hide the line if we're leaving the list entirely (relatedTarget outside list)
+  const list = document.getElementById('sidebarFileList');
+  if (!list.contains(e.relatedTarget)) _hideDropLine();
 }
 
-async function _onDrop(e, targetFolderId) {
+async function _onItemDrop(e, row, targetId, targetType) {
   e.preventDefault();
-  e.currentTarget.classList.remove('drag-over');
-  if (!_dragId) return;
-  if (_dragType === 'folder' && _isSelfOrDescendant(_dragId, targetFolderId)) return;
+  e.stopPropagation();
+  row.classList.remove('drag-over');
+  _hideDropLine();
 
-  const dragId   = _dragId;
-  const dragType = _dragType;
+  if (!_dragId || _dragId === targetId) return;
+  if (_dragType === 'folder' && _isSelfOrDescendant(_dragId, targetId)) return;
 
-  // Capture old parentId before mutating state
-  const oldParentId = dragType === 'file'
-    ? state.project.files[dragId]?.parentId
-    : state.project.folders[dragId]?.parentId;
+  const zone = _dropZone(e, row);
 
-  if (oldParentId === targetFolderId) return; // no-op
+  const dragItem   = _dragType === 'file' ? state.project.files[_dragId]   : state.project.folders[_dragId];
+  const targetItem = targetType === 'file' ? state.project.files[targetId] : state.project.folders[targetId];
+  if (!dragItem || !targetItem) return;
 
-  if (_fsIsLinked()) {
-    await _fsMoveItem(dragId, dragType, oldParentId, targetFolderId);
+  // ── Drop INTO a folder ───────────────────────────────────────
+  if (zone === 'into' && targetType === 'folder') {
+    const oldParentId = dragItem.parentId;
+    if (oldParentId === targetId) return;
+    if (_fsIsLinked()) await _fsMoveItem(_dragId, _dragType, oldParentId, targetId);
+    dragItem.parentId = targetId;
+    state.project.folders[targetId].collapsed = false;
+    state.project._v++;
+    return;
   }
 
-  // Update state
-  if (dragType === 'file' && state.project.files[dragId]) {
-    state.project.files[dragId].parentId = targetFolderId;
-  } else if (dragType === 'folder' && state.project.folders[dragId]) {
-    state.project.folders[dragId].parentId = targetFolderId;
+  // ── Reorder: place before or after target ────────────────────
+  const newParentId = targetItem.parentId;
+  const oldParentId = dragItem.parentId;
+  const movingParent = oldParentId !== newParentId;
+
+  if (_fsIsLinked() && movingParent) {
+    await _fsMoveItem(_dragId, _dragType, oldParentId, newParentId);
   }
 
-  if (targetFolderId && state.project.folders[targetFolderId]) {
-    state.project.folders[targetFolderId].collapsed = false;
+  // Collect all siblings of the same type at the target's level, excluding the dragged item
+  const collection = _dragType === 'file' ? state.project.files : state.project.folders;
+  const siblings = Object.values(collection)
+    .filter(x => x.parentId === newParentId && x.id !== _dragId)
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.name.localeCompare(b.name));
+
+  // Find where target sits in the sibling list
+  const tIdx = siblings.findIndex(x => x.id === targetId);
+
+  // Compute new order: midpoint between neighbours
+  let newOrder;
+  if (zone === 'before') {
+    const prev = siblings[tIdx - 1];
+    const cur  = siblings[tIdx];
+    newOrder = prev ? ((prev.order ?? 0) + (cur.order ?? 0)) / 2 : (cur.order ?? 0) - 500;
+  } else {
+    const cur  = siblings[tIdx];
+    const next = siblings[tIdx + 1];
+    newOrder = next ? ((cur.order ?? 0) + (next.order ?? 0)) / 2 : (cur.order ?? 0) + 500;
   }
 
-  // parentId mutation tracked reactively; _v bump covers the collapsed = false change
+  dragItem.parentId = newParentId;
+  dragItem.order    = newOrder;
   state.project._v++;
 }
 
 async function _onDropRoot(e) {
   e.preventDefault();
+  _hideDropLine();
   if (!_dragId) return;
 
-  const dragId   = _dragId;
-  const dragType = _dragType;
-  const oldParentId = dragType === 'file'
-    ? state.project.files[dragId]?.parentId
-    : state.project.folders[dragId]?.parentId;
-
-  if (oldParentId === null) return; // already at root
+  const dragItem = _dragType === 'file' ? state.project.files[_dragId] : state.project.folders[_dragId];
+  if (!dragItem) return;
+  if (dragItem.parentId === null) return; // already at root
 
   if (_fsIsLinked()) {
-    await _fsMoveItem(dragId, dragType, oldParentId, null);
+    await _fsMoveItem(_dragId, _dragType, dragItem.parentId, null);
   }
 
-  if (dragType === 'file'   && state.project.files[dragId])   state.project.files[dragId].parentId   = null;
-  if (dragType === 'folder' && state.project.folders[dragId]) state.project.folders[dragId].parentId = null;
-  // parentId mutation tracked reactively by explorer effect
+  dragItem.parentId = null;
+  // Place at end of root items
+  const collection = _dragType === 'file' ? state.project.files : state.project.folders;
+  const rootItems = Object.values(collection).filter(x => x.parentId === null && x.id !== _dragId);
+  dragItem.order = rootItems.length ? Math.max(...rootItems.map(x => x.order ?? 0)) + 1000 : 1000;
+  state.project._v++;
 }
 
 /* ── Move a file or folder on disk ──────────────────────────── */
@@ -250,26 +322,26 @@ function _makeFolderRow({ item: folder, depth }) {
   row.appendChild(nameEl);
   row.appendChild(actions);
 
-  // Drag source (move folder)
+  // Drag source + drop target (reorder or move into)
   row.draggable = true;
   row.addEventListener('dragstart', e => _onDragStart(e, folder.id, 'folder'));
   row.addEventListener('dragend',   _onDragEnd);
 
-  // Drop target (receive internal moves OR external files into this folder)
   row.addEventListener('dragover', e => {
-    if (_dragId) { _onDragOver(e, folder.id); return; }
+    if (_dragId) { _onItemDragOver(e, row, folder.id, 'folder'); return; }
     if (Array.from(e.dataTransfer.types || []).includes('Files')) {
       e.preventDefault();
-      e.stopPropagation(); // don't bubble to sidebar ext handler
+      e.stopPropagation();
       e.dataTransfer.dropEffect = 'copy';
       row.classList.add('drag-over');
     }
   });
   row.addEventListener('dragleave', e => {
-    _onDragLeave(e);
+    if (_dragId) { _onItemDragLeave(e, row); return; }
+    row.classList.remove('drag-over');
   });
   row.addEventListener('drop', e => {
-    if (_dragId) { _onDrop(e, folder.id); return; }
+    if (_dragId) { _onItemDrop(e, row, folder.id, 'folder'); return; }
     if (Array.from(e.dataTransfer.types || []).includes('Files')) {
       e.stopPropagation();
       row.classList.remove('drag-over');
@@ -340,10 +412,13 @@ function _makeFileRow({ item: file, depth }) {
   row.appendChild(nameEl);
   row.appendChild(actions);
 
-  // Drag source (move file)
+  // Drag source + drop target (reorder or move into folder)
   row.draggable = true;
   row.addEventListener('dragstart', e => _onDragStart(e, file.id, 'file'));
   row.addEventListener('dragend',   _onDragEnd);
+  row.addEventListener('dragover',  e => { if (_dragId) _onItemDragOver(e, row, file.id, 'file'); });
+  row.addEventListener('dragleave', e => { if (_dragId) _onItemDragLeave(e, row); });
+  row.addEventListener('drop',      e => { if (_dragId) _onItemDrop(e, row, file.id, 'file'); });
 
   // Click → open file
   row.addEventListener('click', e => {
@@ -806,6 +881,8 @@ async function openFolderForEditing() {
   _fsDirHandle = dirHandle;
 
   await _readDirRW(dirHandle, null);
+  _migrateOrder(state.project.files);
+  _migrateOrder(state.project.folders);
 
   saveProject();   // keep explicit: bulk load, want immediate persistence
   savePanelTabs();
@@ -987,6 +1064,8 @@ async function importViaDirectoryPicker() {
   _clearProject();
 
   await _readDirectoryHandle(dirHandle, null);
+  _migrateOrder(state.project.files);
+  _migrateOrder(state.project.folders);
 
   saveProject();   // keep explicit: bulk import, want immediate persistence
   savePanelTabs();
@@ -1069,6 +1148,8 @@ async function importViaFileInput(fileList) {
   }));
 
   await Promise.all(reads);
+  _migrateOrder(state.project.files);
+  _migrateOrder(state.project.folders);
 
   const rootName = fileList[0].webkitRelativePath.split('/')[0] || 'Project';
   saveProject();   // keep explicit: bulk import, want immediate persistence
@@ -1174,6 +1255,8 @@ async function _handleExternalDrop(e, sidebar, parentIdOverride) {
 
   toast('Importing…', 60000);
   for (const entry of entries) await _importEntry(entry, parentId);
+  _migrateOrder(state.project.files);
+  _migrateOrder(state.project.folders);
 
   saveProject();
   state.project._v++;
