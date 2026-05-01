@@ -346,4 +346,21 @@ function wireKeyboard() {
     // Note: Tab key in textareas is handled entirely by wireAutoClose (autoclose.js)
     // which supports Emmet, CSS shortcuts, block indent/dedent, and tab-size setting.
   });
+
+  // Alt+] / Alt+[ — cycle sidebar files. Registered in capture phase so it fires
+  // before textarea keydown handlers (which would otherwise insert [ or ] characters).
+  document.addEventListener('keydown', e => {
+    if (!e.altKey || (e.key !== ']' && e.key !== '[')) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const side  = _activeSide();
+    const files = getTreeFlat().filter(n => n.type === 'file').map(n => n.item);
+    if (files.length < 2) return;
+    const cur = state.panelTabs[side].activeId;
+    const idx = files.findIndex(f => f.id === cur);
+    const next = e.key === ']'
+      ? files[(idx + 1) % files.length]
+      : files[(idx - 1 + files.length) % files.length];
+    openFileInPanel(side, next.id);
+  }, { capture: true });
 }
