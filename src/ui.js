@@ -363,4 +363,40 @@ function wireKeyboard() {
       : files[(idx - 1 + files.length) % files.length];
     openFileInPanel(side, next.id);
   }, { capture: true });
+
+  // Ctrl+C / Ctrl+V — copy/paste sidebar item when focus is on the sidebar
+  document.addEventListener('keydown', e => {
+    const ctrl = e.ctrlKey || e.metaKey;
+    if (!ctrl || (e.key !== 'c' && e.key !== 'v')) return;
+    // Only intercept when focus is inside the sidebar (not in a text editor)
+    const inSidebar = document.activeElement?.closest('#sidebar');
+    if (!inSidebar) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.key === 'c') {
+      // Find which row is focused/hovered — use dataset.id on the closest explorer-item
+      const row = document.activeElement?.closest('.explorer-item') ||
+                  document.querySelector('.explorer-item:hover');
+      if (!row) return;
+      const id   = row.dataset.id;
+      const type = row.classList.contains('explorer-folder') ? 'folder' : 'file';
+      _copyItem(id, type);
+    } else {
+      // Paste into folder under focus, or root
+      const row = document.activeElement?.closest('.explorer-item') ||
+                  document.querySelector('.explorer-item:hover');
+      let destParentId = null;
+      if (row) {
+        const id = row.dataset.id;
+        if (row.classList.contains('explorer-folder')) {
+          destParentId = id; // paste inside hovered folder
+        } else {
+          // paste alongside the file (same parent)
+          const file = state.project.files[id];
+          destParentId = file?.parentId ?? null;
+        }
+      }
+      _pasteItem(destParentId);
+    }
+  }, { capture: true });
 }

@@ -71,7 +71,10 @@ function createFile(name, parentId = null) {
 function renameFile(id, newName) {
   newName = newName.trim();
   if (!newName || !state.project.files[id]) return false;
-  state.project.files[id].name = newName; // reactive: tracked via property access
+  const parentId = state.project.files[id].parentId;
+  const safe = _uniqueName(newName, parentId, id);
+  if (safe.toLowerCase() !== newName.toLowerCase()) return false; // name already taken
+  state.project.files[id].name = safe;
   return true;
 }
 
@@ -87,19 +90,28 @@ function deleteFile(id) {
   });
 }
 
-/* ── Ensure unique name within the same parent ───────────────── */
-function _uniqueFileName(name, parentId) {
-  const siblings = Object.values(state.project.files)
-    .filter(f => f.parentId === parentId)
-    .map(f => f.name);
-  if (!siblings.includes(name)) return name;
+/* ── Unique name across BOTH files and folders in the same parent */
+function _uniqueName(name, parentId, excludeId = null) {
+  const taken = new Set([
+    ...Object.values(state.project.files)
+      .filter(f => f.parentId === parentId && f.id !== excludeId)
+      .map(f => f.name.toLowerCase()),
+    ...Object.values(state.project.folders)
+      .filter(f => f.parentId === parentId && f.id !== excludeId)
+      .map(f => f.name.toLowerCase()),
+  ]);
+  if (!taken.has(name.toLowerCase())) return name;
   const dot  = name.lastIndexOf('.');
   const base = dot > 0 ? name.slice(0, dot) : name;
   const ext  = dot > 0 ? name.slice(dot)    : '';
   let i = 2;
-  while (siblings.includes(base + i + ext)) i++;
+  while (taken.has((base + i + ext).toLowerCase())) i++;
   return base + i + ext;
 }
+
+// Keep old names as aliases so nothing else breaks
+function _uniqueFileName(name, parentId)  { return _uniqueName(name, parentId); }
+function _uniqueFolderName(name, parentId) { return _uniqueName(name, parentId); }
 
 /* ════════════════════════════════════════════════════════════════
    FOLDERS
@@ -119,7 +131,10 @@ function createFolder(name, parentId = null) {
 function renameFolder(id, newName) {
   newName = newName.trim();
   if (!newName || !state.project.folders[id]) return false;
-  state.project.folders[id].name = newName; // reactive: tracked via property access
+  const parentId = state.project.folders[id].parentId;
+  const safe = _uniqueName(newName, parentId, id);
+  if (safe.toLowerCase() !== newName.toLowerCase()) return false; // name already taken
+  state.project.folders[id].name = safe;
   return true;
 }
 
@@ -151,15 +166,6 @@ function toggleFolderCollapse(id) {
   // reactive: .collapsed mutation triggers explorer + project-save effects
 }
 
-function _uniqueFolderName(name, parentId) {
-  const siblings = Object.values(state.project.folders)
-    .filter(f => f.parentId === parentId)
-    .map(f => f.name);
-  if (!siblings.includes(name)) return name;
-  let i = 2;
-  while (siblings.includes(name + i)) i++;
-  return name + i;
-}
 
 /* ════════════════════════════════════════════════════════════════
    TREE HELPERS

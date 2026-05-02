@@ -172,7 +172,10 @@ async function _onItemDrop(e, row, targetId, targetType) {
   if (zone === 'into' && targetType === 'folder') {
     const oldParentId = dragItem.parentId;
     if (oldParentId === targetId) return;
+    // Prevent name collision in destination folder
+    const safeName = _uniqueName(dragItem.name, targetId, _dragId);
     if (_fsIsLinked()) await _fsMoveItem(_dragId, _dragType, oldParentId, targetId);
+    dragItem.name     = safeName;
     dragItem.parentId = targetId;
     state.project.folders[targetId].collapsed = false;
     state.project._v++;
@@ -180,8 +183,8 @@ async function _onItemDrop(e, row, targetId, targetType) {
   }
 
   // ── Reorder: place before or after target ────────────────────
-  const newParentId = targetItem.parentId;
-  const oldParentId = dragItem.parentId;
+  const newParentId  = targetItem.parentId;
+  const oldParentId  = dragItem.parentId;
   const movingParent = oldParentId !== newParentId;
 
   if (_fsIsLinked() && movingParent) {
@@ -209,6 +212,7 @@ async function _onItemDrop(e, row, targetId, targetType) {
     newOrder = next ? ((cur.order ?? 0) + (next.order ?? 0)) / 2 : (cur.order ?? 0) + 500;
   }
 
+  if (movingParent) dragItem.name = _uniqueName(dragItem.name, newParentId, _dragId);
   dragItem.parentId = newParentId;
   dragItem.order    = newOrder;
   state.project._v++;
@@ -227,6 +231,7 @@ async function _onDropRoot(e) {
     await _fsMoveItem(_dragId, _dragType, dragItem.parentId, null);
   }
 
+  dragItem.name     = _uniqueName(dragItem.name, null, _dragId);
   dragItem.parentId = null;
   // Place at end of root items
   const collection = _dragType === 'file' ? state.project.files : state.project.folders;
@@ -286,12 +291,108 @@ function _isSelfOrDescendant(nodeId, ancestorId) {
   return false;
 }
 
+/* ════════════════════════════════════════════════════════════════
+   COPY / PASTE
+════════════════════════════════════════════════════════════════ */
+let _clipboard = null; // { id, type: 'file'|'folder' }
+
+function _copyItem(id, type) {
+  _clipboard = { id, type };
+  const item = type === 'file' ? state.project.files[id] : state.project.folders[id];
+  toast(`Copied "${item?.name}"  —  Ctrl+V to paste`, 2000);
+}
+
+// Deep-clone a folder and all its children into destParentId
+function _cloneFolderInto(srcFolderId, destParentId) {
+  const src = state.project.folders[srcFolderId];
+  if (!src) return;
+
+  // Make a unique name in the destination
+  let newName = src.name;
+  const siblingNames = Object.values(state.project.folders)
+    .filter(f => f.parentId === destParentId).map(f => f.name)
+    .concat(Object.values(state.project.files)
+    .filter(f => f.parentId === destParentId).map(f => f.name));
+  if (siblingNames.includes(newName)) {
+    let i = 2;
+    while (siblingNames.includes(newName + ' ' + i)) i++;
+    newName = newName + ' ' + i;
+  }
+
+  const newFolderId = uid();
+  const order = _nextOrder(destParentId, state.project.folders);
+  state.project.folders[newFolderId] = {
+    id: newFolderId, name: newName, parentId: destParentId,
+    collapsed: false, order,
+  };
+
+  // Recursively clone child folders
+  Object.values(state.project.folders)
+    .filter(f => f.parentId === srcFolderId)
+    .forEach(f => _cloneFolderInto(f.id, newFolderId));
+
+  // Clone child files
+  Object.values(state.project.files)
+    .filter(f => f.parentId === srcFolderId)
+    .forEach(f => {
+      const newId = uid();
+      const fileOrder = _nextOrder(newFolderId, state.project.files);
+      state.project.files[newId] = {
+        id: newId, name: f.name, content: f.content,
+        parentId: newFolderId, order: fileOrder,
+      };
+    });
+
+  return newFolderId;
+}
+
+function _pasteItem(destParentId = null) {
+  if (!_clipboard) { toast('Nothing copied', 1500); return; }
+  const { id, type } = _clipboard;
+
+  if (type === 'file') {
+    const src = state.project.files[id];
+    if (!src) { _clipboard = null; return; }
+
+    // Unique name in destination
+    let newName = src.name;
+    const dot  = newName.lastIndexOf('.');
+    const base = dot > 0 ? newName.slice(0, dot) : newName;
+    const ext  = dot > 0 ? newName.slice(dot) : '';
+    const siblings = Object.values(state.project.files)
+      .filter(f => f.parentId === destParentId).map(f => f.name);
+    if (siblings.includes(newName)) {
+      let i = 2;
+      while (siblings.includes(base + ' ' + i + ext)) i++;
+      newName = base + ' ' + i + ext;
+    }
+
+    const newId = uid();
+    const order = _nextOrder(destParentId, state.project.files);
+    state.project.files[newId] = {
+      id: newId, name: newName, content: src.content,
+      parentId: destParentId, order,
+    };
+    state.project._v++;
+    toast(`Pasted "${newName}"`, 1500);
+
+  } else {
+    // folder deep-clone
+    if (!state.project.folders[id]) { _clipboard = null; return; }
+    _cloneFolderInto(id, destParentId);
+    state.project._v++;
+    const src = state.project.folders[id];
+    toast(`Pasted folder "${src?.name}"`, 1500);
+  }
+}
+
 /* ── Build a folder row ──────────────────────────────────────── */
 function _makeFolderRow({ item: folder, depth }) {
   const INDENT = 14;
   const row = document.createElement('div');
   row.className      = 'explorer-item explorer-folder';
   row.dataset.id     = folder.id;
+  row.tabIndex       = -1;
   row.style.paddingLeft = (8 + depth * INDENT) + 'px';
 
   // Arrow ▶ / ▼
@@ -351,10 +452,11 @@ function _makeFolderRow({ item: folder, depth }) {
     }
   });
 
-  // Click → toggle collapse
+  // Click → toggle collapse + grab focus for keyboard shortcuts
   row.addEventListener('click', e => {
     if (e.target.closest('.file-actions')) return;
     if (e.target.classList.contains('rename-input')) return;
+    row.focus({ preventScroll: true });
     toggleFolderCollapse(folder.id); // reactive: collapsed mutation triggers explorer effect
   });
 
@@ -371,6 +473,9 @@ function _makeFolderRow({ item: folder, depth }) {
       { label: 'New File Here',   action: () => _promptNewFile(folder.id)   },
       { label: 'New Folder Here', action: () => _promptNewFolder(folder.id)  },
       '-',
+      { label: 'Copy',            action: () => _copyItem(folder.id, 'folder') },
+      { label: 'Paste Inside',    action: () => _pasteItem(folder.id) },
+      '-',
       { label: 'Rename',          action: () => _startRename(row, folder.id, nameEl, 'folder') },
       { label: 'Delete',          action: () => _confirmDelete('folder', folder) },
     ]);
@@ -385,6 +490,7 @@ function _makeFileRow({ item: file, depth }) {
   const row = document.createElement('div');
   row.className      = 'explorer-item';
   row.dataset.id     = file.id;
+  row.tabIndex       = -1;
   row.style.paddingLeft = (8 + depth * INDENT + 16) + 'px'; // +16 for arrow space
 
   const inLeft  = state.panelTabs.left.activeId  === file.id;
@@ -420,10 +526,11 @@ function _makeFileRow({ item: file, depth }) {
   row.addEventListener('dragleave', e => { if (_dragId) _onItemDragLeave(e, row); });
   row.addEventListener('drop',      e => { if (_dragId) _onItemDrop(e, row, file.id, 'file'); });
 
-  // Click → open file
+  // Click → open file + grab focus for keyboard shortcuts
   row.addEventListener('click', e => {
     if (e.target.closest('.file-actions')) return;
     if (e.target.classList.contains('rename-input')) return;
+    row.focus({ preventScroll: true });
     openFileInPanel(_focusedPanel, file.id); // reactive: activeId mutation triggers explorer + tab effects
   });
 
@@ -439,6 +546,9 @@ function _makeFileRow({ item: file, depth }) {
     const items = [
       { label: 'Open in Left Panel',  action: () => openFileInPanel('left',  file.id) },
       { label: 'Open in Right Panel', action: () => openFileInPanel('right', file.id) },
+      '-',
+      { label: 'Copy',  action: () => _copyItem(file.id, 'file') },
+      { label: 'Paste', action: () => _pasteItem(file.parentId) },
       '-',
     ];
     // Show save/revert options only when autosave is off and file has unsaved changes
@@ -518,12 +628,12 @@ function _startRename(row, id, nameEl, type) {
           // Delete old dir — use oldName captured before state mutation
           await parentHandle.removeEntry(oldName, { recursive: true });
           // Now rename in state
-          renameFolder(id, newName);
+          if (!renameFolder(id, newName)) toast(`"${newName}" already exists`, 2000);
         } catch (e) {
           toast('Folder rename failed: ' + e.message, 3000);
         }
       } else {
-        renameFolder(id, newName);
+        if (!renameFolder(id, newName)) { toast(`"${newName}" already exists`, 2000); return; }
       }
 
     } else {
@@ -541,7 +651,7 @@ function _startRename(row, id, nameEl, type) {
       const oldHandle  = _fsHandles[id];
       const parentId   = state.project.files[id]?.parentId ?? null;
 
-      renameFile(id, newName); // reactive: name mutation triggers explorer + tab-bar effects
+      if (!renameFile(id, newName)) { toast(`"${newName}" already exists`, 2000); return; }
 
       if (_fsIsLinked() && oldHandle) {
         try {
@@ -892,20 +1002,22 @@ async function openFolderForEditing() {
 }
 
 async function _readDirRW(dirHandle, parentId) {
-  for await (const [name, entry] of dirHandle.entries()) {
+  for await (const [rawName, entry] of dirHandle.entries()) {
     if (entry.kind === 'directory') {
-      if (_shouldSkipDir(name)) continue;
+      if (_shouldSkipDir(rawName)) continue;
+      const name     = _uniqueName(rawName, parentId);
       const folderId = uid();
       state.project.folders[folderId] = { id: folderId, name, parentId, collapsed: false };
       await _readDirRW(entry, folderId);
     } else {
-      if (_shouldSkipFile(name)) continue;
+      if (_shouldSkipFile(rawName)) continue;
       try {
         const f       = await entry.getFile();
         const content = await f.text();
         const id      = uid();
+        const name    = _uniqueName(rawName, parentId);
         state.project.files[id] = { id, name, content, parentId };
-        _fsHandles[id] = entry; // keep FileSystemFileHandle for writing back
+        _fsHandles[id] = entry;
       } catch (_) {}
     }
   }
@@ -1075,18 +1187,20 @@ async function importViaDirectoryPicker() {
 }
 
 async function _readDirectoryHandle(handle, parentId) {
-  for await (const [name, entry] of handle) {
+  for await (const [rawName, entry] of handle) {
     if (entry.kind === 'directory') {
-      if (_shouldSkipDir(name)) continue;
+      if (_shouldSkipDir(rawName)) continue;
+      const name     = _uniqueName(rawName, parentId);
       const folderId = uid();
       state.project.folders[folderId] = { id: folderId, name, parentId, collapsed: false };
       await _readDirectoryHandle(entry, folderId);
     } else {
-      if (_shouldSkipFile(name)) continue;
+      if (_shouldSkipFile(rawName)) continue;
       try {
         const file    = await entry.getFile();
         const content = await file.text();
         const id      = uid();
+        const name    = _uniqueName(rawName, parentId);
         state.project.files[id] = { id, name, content, parentId };
       } catch (_) { /* skip unreadable files */ }
     }
@@ -1180,8 +1294,9 @@ async function _importEntry(entry, parentId) {
     try {
       const file = await new Promise((res, rej) => entry.file(res, rej));
       const content = await file.text();
-      const id = uid();
-      state.project.files[id] = { id, name: entry.name, content, parentId };
+      const id   = uid();
+      const name = _uniqueName(entry.name, parentId);
+      state.project.files[id] = { id, name, content, parentId };
       if (_fsIsLinked()) {
         // If a disk folder is open, write the file there too
         try {
@@ -1196,8 +1311,9 @@ async function _importEntry(entry, parentId) {
     } catch (_) {}
   } else if (entry.isDirectory) {
     if (_shouldSkipDir(entry.name)) return;
-    const folderId = uid();
-    state.project.folders[folderId] = { id: folderId, name: entry.name, parentId, collapsed: false };
+    const folderId  = uid();
+    const folderName = _uniqueName(entry.name, parentId);
+    state.project.folders[folderId] = { id: folderId, name: folderName, parentId, collapsed: false };
     if (_fsIsLinked()) {
       try {
         const dirHandle = await _getDirHandleForFolder(parentId);
