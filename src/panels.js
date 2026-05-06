@@ -146,6 +146,8 @@ function setPanelMode(side, mode) {
       startTw(side);
     }
   }
+
+  if (typeof _updateLiveToggleBtn === 'function') _updateLiveToggleBtn(side);
 }
 
 /* ── Raw + Live preview split ────────────────────────────────── */
@@ -181,6 +183,8 @@ function _setRawLive(side, on) {
     // Reset shell so next enable re-initialises the iframe cleanly
     if (typeof _resetRawShell === 'function') _resetRawShell(side);
   }
+
+  if (typeof _updateLiveToggleBtn === 'function') _updateLiveToggleBtn(side);
 }
 
 function toggleRawLive(side) {

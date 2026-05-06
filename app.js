@@ -101,6 +101,7 @@ function init() {
   const sess = state.session;
   setPanelMode('left',  sess.panelMode.left);
   setPanelMode('right', sess.panelMode.right);
+  updateAllLiveToggleBtns();
 
   // 11. Restore layout
   applyLayout(sess.layout);

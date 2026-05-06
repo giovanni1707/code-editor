@@ -46,6 +46,14 @@ function closeSettings() {
   el.settingsOverlay.classList.remove('open');
 }
 
+/* ── Keyboard shortcuts modal ────────────────────────────────── */
+function openShortcuts() {
+  document.getElementById('shortcutsOverlay').classList.add('open');
+}
+function closeShortcuts() {
+  document.getElementById('shortcutsOverlay').classList.remove('open');
+}
+
 function wireSettings() {
   el.settingsBtn.addEventListener('click', openSettings);
   el.closeSettings.addEventListener('click', closeSettings);
@@ -165,8 +173,31 @@ function wireToolbar() {
   el.layoutBtn.addEventListener('click', cycleLayout);
   el.themeBtn.addEventListener('click', toggleTheme);
   el.fsBtn.addEventListener('click', toggleFullscreen);
+  document.getElementById('shortcutsBtn')?.addEventListener('click', openShortcuts);
+  document.getElementById('closeShortcuts')?.addEventListener('click', closeShortcuts);
+  document.getElementById('shortcutsOverlay')?.addEventListener('click', e => {
+    if (e.target === document.getElementById('shortcutsOverlay')) closeShortcuts();
+  });
   document.getElementById('zenBtn')?.addEventListener('click', toggleZen);
   document.getElementById('zenShowBtn')?.addEventListener('click', toggleZen);
+
+  // Live preview toggle buttons (one per panel)
+  ['left', 'right'].forEach(side => {
+    const sfx = side === 'left' ? 'L' : 'R';
+    const btn = document.getElementById('liveToggleBtn' + sfx);
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      const mode = state.panelMode[side];
+      if (mode === 'raw') {
+        // In raw mode: toggle the raw+live split
+        toggleRawLive(side);
+      } else {
+        // In edit/live mode: toggle between live and edit
+        setPanelMode(side, mode === 'live' ? 'edit' : 'live');
+      }
+      _updateLiveToggleBtn(side);
+    });
+  });
 
   // Track last focused panel via mousedown (not focusin, which fires on programmatic .focus() during init)
   document.getElementById('colLeft')?.addEventListener('mousedown',  () => { _lastFocusedSide = 'left';  });
@@ -187,6 +218,21 @@ function wireToolbar() {
   // Per-panel mode buttons
   el.modeBtnsL.forEach(b => b.addEventListener('click', () => setPanelMode('left',  b.dataset.mode)));
   el.modeBtnsR.forEach(b => b.addEventListener('click', () => setPanelMode('right', b.dataset.mode)));
+}
+
+/* ── Live-preview toggle button state ───────────────────────── */
+function _updateLiveToggleBtn(side) {
+  const sfx = side === 'left' ? 'L' : 'R';
+  const btn = document.getElementById('liveToggleBtn' + sfx);
+  if (!btn) return;
+  const isOn = state.panelMode[side] === 'live' ||
+               (state.panelMode[side] === 'raw' && typeof _rawLiveActive !== 'undefined' && _rawLiveActive[side]);
+  btn.classList.toggle('on', isOn);
+}
+
+function updateAllLiveToggleBtns() {
+  _updateLiveToggleBtn('left');
+  _updateLiveToggleBtn('right');
 }
 
 /* ── Track last-focused panel side ──────────────────────────── */
@@ -237,7 +283,8 @@ function wireKeyboard() {
     if (ctrl && e.key === '\\') { e.preventDefault(); cycleLayout(); return; }
 
     // Settings / theme / fullscreen
-    if (ctrl && e.key === ',')  { e.preventDefault(); openSettings();     return; }
+    if (ctrl && e.key === ',')  { e.preventDefault(); openSettings();   return; }
+    if (ctrl && e.key === '/')  { e.preventDefault(); openShortcuts();  return; }
     if (ctrl && e.shiftKey && e.key === 'H') { e.preventDefault(); toggleZen();   return; }
     if (ctrl && e.shiftKey && e.key === 'T') { e.preventDefault(); toggleTheme(); return; }
     if (e.key === 'F11')    { e.preventDefault(); toggleFullscreen(); return; }
@@ -279,6 +326,24 @@ function wireKeyboard() {
       return;
     }
 
+    // Ctrl+Shift+L / Ctrl+Shift+R — toggle left / right live preview
+    if (ctrl && e.shiftKey && e.key === 'L') {
+      e.preventDefault();
+      const mode = state.panelMode.left;
+      if (mode === 'raw') toggleRawLive('left');
+      else setPanelMode('left', mode === 'live' ? 'edit' : 'live');
+      _updateLiveToggleBtn('left');
+      return;
+    }
+    if (ctrl && e.shiftKey && e.key === 'R') {
+      e.preventDefault();
+      const mode = state.panelMode.right;
+      if (mode === 'raw') toggleRawLive('right');
+      else setPanelMode('right', mode === 'live' ? 'edit' : 'live');
+      _updateLiveToggleBtn('right');
+      return;
+    }
+
     // Ctrl+F — Find, Ctrl+H — Replace
     if (ctrl && (e.key === 'f' || e.key === 'h')) {
       e.preventDefault();
@@ -294,6 +359,7 @@ function wireKeyboard() {
         return;
       }
       closeSettings();
+      closeShortcuts();
       closeCommandPalette();
       closeGlobalSearch();
       ['left','right'].forEach(side => { if (FIND[side].open) closeFind(side); });

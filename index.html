@@ -810,6 +810,29 @@
     }
     .modal-title { font-size: 15px; font-weight: 600; }
 
+    /* ─── Keyboard shortcuts modal ──────────────────────────────── */
+    .kb-modal { width: 560px; }
+    .kb-section { margin-bottom: 20px; }
+    .kb-section-title {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--blue); margin-bottom: 8px;
+    }
+    .kb-table { width: 100%; border-collapse: collapse; }
+    .kb-table tr { border-bottom: 1px solid var(--bg3); }
+    .kb-table tr:last-child { border-bottom: none; }
+    .kb-table td { padding: 6px 4px; font-size: 12px; vertical-align: middle; }
+    .kb-table td:first-child { width: 55%; color: var(--txt0); }
+    .kb-table td:last-child  { text-align: right; }
+    .kb-table kbd {
+      display: inline-block;
+      padding: 2px 7px; margin-left: 4px;
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 4px; font-family: var(--font-mono);
+      font-size: 11px; color: var(--txt0);
+      box-shadow: 0 1px 0 var(--border);
+      white-space: nowrap;
+    }
+
     .stg-group { margin-bottom: 16px; }
     .stg-group-title {
       font-size: 10px; font-weight: 700; text-transform: uppercase;
@@ -1931,11 +1954,17 @@
 
   <div class="tb-spacer"></div>
 
+  <!-- Live preview toggles -->
+  <button class="icon-btn" id="liveToggleBtnL" title="Toggle left panel live preview">⚡L</button>
+  <button class="icon-btn" id="liveToggleBtnR" title="Toggle right panel live preview">⚡R</button>
+  <div class="tb-sep"></div>
+
   <!-- Right-side icon buttons -->
-  <button class="icon-btn" id="layoutBtn" title="Cycle layout (Ctrl+\)">⊟</button>
-  <button class="icon-btn" id="themeBtn"  title="Toggle theme (Ctrl+Shift+T)">◑</button>
+  <button class="icon-btn" id="layoutBtn"   title="Cycle layout (Ctrl+\)">⊟</button>
+  <button class="icon-btn" id="themeBtn"    title="Toggle theme (Ctrl+Shift+T)">◑</button>
+  <button class="icon-btn" id="shortcutsBtn" title="Keyboard shortcuts (Ctrl+/)">⌨</button>
   <button class="icon-btn" id="settingsBtn" title="Settings (Ctrl+,)">⚙</button>
-  <button class="icon-btn" id="fsBtn"     title="Fullscreen (F11)">⛶</button>
+  <button class="icon-btn" id="fsBtn"       title="Fullscreen (F11)">⛶</button>
   <div class="tb-sep"></div>
   <button class="icon-btn" id="zenBtn"  title="Hide toolbar (Ctrl+Shift+H)">▲</button>
   <button class="icon-btn" id="recBtn" title="Record screen">⏺</button>
@@ -2421,6 +2450,78 @@
           <span><kbd>Escape</kbd> Clear cursors</span>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ KEYBOARD SHORTCUTS MODAL ════════════════════════════════ -->
+<div class="overlay" id="shortcutsOverlay">
+  <div class="modal kb-modal">
+    <div class="modal-hd">
+      <span class="modal-title">⌨ Keyboard Shortcuts</span>
+      <button class="icon-btn" id="closeShortcuts" style="width:26px;height:26px;font-size:16px">✕</button>
+    </div>
+
+    <div class="kb-section">
+      <div class="kb-section-title">File &amp; Project</div>
+      <table class="kb-table">
+        <tr><td>Save</td><td><kbd>Ctrl</kbd><kbd>S</kbd></td></tr>
+        <tr><td>Quick open file</td><td><kbd>Ctrl</kbd><kbd>P</kbd></td></tr>
+        <tr><td>Global search</td><td><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>F</kbd></td></tr>
+        <tr><td>Cycle sidebar file (next)</td><td><kbd>Alt</kbd><kbd>]</kbd></td></tr>
+        <tr><td>Cycle sidebar file (prev)</td><td><kbd>Alt</kbd><kbd>[</kbd></td></tr>
+        <tr><td>Copy sidebar item</td><td><kbd>Ctrl</kbd><kbd>C</kbd> <span style="color:var(--txt1);font-size:11px">(sidebar focus)</span></td></tr>
+        <tr><td>Paste sidebar item</td><td><kbd>Ctrl</kbd><kbd>V</kbd> <span style="color:var(--txt1);font-size:11px">(sidebar focus)</span></td></tr>
+      </table>
+    </div>
+
+    <div class="kb-section">
+      <div class="kb-section-title">Editor</div>
+      <table class="kb-table">
+        <tr><td>Find</td><td><kbd>Ctrl</kbd><kbd>F</kbd></td></tr>
+        <tr><td>Find &amp; Replace</td><td><kbd>Ctrl</kbd><kbd>H</kbd></td></tr>
+        <tr><td>Format code</td><td><kbd>Alt</kbd><kbd>Shift</kbd><kbd>F</kbd></td></tr>
+        <tr><td>Select next occurrence</td><td><kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>D</kbd></td></tr>
+        <tr><td>Select all occurrences</td><td><kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>K</kbd></td></tr>
+        <tr><td>Add cursor (multi-cursor)</td><td><kbd>Alt</kbd><kbd>Click</kbd></td></tr>
+        <tr><td>Clear extra cursors</td><td><kbd>Escape</kbd></td></tr>
+        <tr><td>Indent</td><td><kbd>Tab</kbd></td></tr>
+        <tr><td>Dedent</td><td><kbd>Shift</kbd><kbd>Tab</kbd></td></tr>
+        <tr><td>Toggle console</td><td><kbd>Ctrl</kbd><kbd>`</kbd></td></tr>
+        <tr><td>Toggle sidebar</td><td><kbd>Ctrl</kbd><kbd>B</kbd></td></tr>
+      </table>
+    </div>
+
+    <div class="kb-section">
+      <div class="kb-section-title">Typewriter / Raw Mode</div>
+      <table class="kb-table">
+        <tr><td>Pause / Resume</td><td><kbd>Space</kbd></td></tr>
+        <tr><td>Restart typewriter</td><td><kbd>R</kbd></td></tr>
+        <tr><td>Start playback</td><td><kbd>Enter</kbd></td></tr>
+        <tr><td>Toggle step mode</td><td><kbd>Ctrl</kbd><kbd>Space</kbd></td></tr>
+        <tr><td>Step one character</td><td><kbd>Space</kbd> <span style="color:var(--txt1);font-size:11px">(step mode)</span></td></tr>
+      </table>
+    </div>
+
+    <div class="kb-section">
+      <div class="kb-section-title">Panels &amp; Layout</div>
+      <table class="kb-table">
+        <tr><td>Toggle left live preview</td><td><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>L</kbd></td></tr>
+        <tr><td>Toggle right live preview</td><td><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>R</kbd></td></tr>
+        <tr><td>Cycle layout</td><td><kbd>Ctrl</kbd><kbd>\</kbd></td></tr>
+        <tr><td>Fullscreen</td><td><kbd>F11</kbd></td></tr>
+        <tr><td>Toggle zen mode</td><td><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>H</kbd></td></tr>
+      </table>
+    </div>
+
+    <div class="kb-section">
+      <div class="kb-section-title">Interface</div>
+      <table class="kb-table">
+        <tr><td>Settings</td><td><kbd>Ctrl</kbd><kbd>,</kbd></td></tr>
+        <tr><td>Keyboard shortcuts</td><td><kbd>Ctrl</kbd><kbd>/</kbd></td></tr>
+        <tr><td>Toggle theme</td><td><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>T</kbd></td></tr>
+        <tr><td>Close overlay / panel</td><td><kbd>Escape</kbd></td></tr>
+      </table>
     </div>
   </div>
 </div>
